@@ -32,7 +32,8 @@ static void InitUART4(uint32_t baudrate);
 static void InitUART5(uint32_t baudrate);
 void USART_puts(USART_TypeDef* USARTx, volatile char *s);
 /*volatile*/ char sendBuffer[] = "$GPRMC,201633.000,A,4239.9272,N,02321.8573,E,0.54,0.00,200114,,,A*65\r\n$GPVTG,0.00,T,,M,0.54,N,0.99,K,A*3C\r\n$GPGGA,201633.000,4239.9272,N,02321.8573,E,1,5,1.28,574.1,M,36.7,M,,*5B\r\n$GPGSA,A,3,12,24,28,26,15,,,,,,,,1.58,1.28,0.93*00\r\n$GPGSV,2,1,06,15,59,228,45,24,52,307,44,39,40,177,38,26,37,169,37*76\r\n$GPGSV,2,2,06,12,25,247,43,28,20,056,30*75\r\n$GPGLL,4239.9272,N,02321.8573,E,201633.000,A,A*55\r\n$GPTXT,01,01,02,ANTSTATUS=OPEN*2B\r\n";
-volatile char * pointerSendBuffer;
+volatile char *pointerSendBuffer;
+char tempString[MAX_NMEA_LENGTH];
 
 int main()
 {
@@ -75,11 +76,10 @@ int main()
   //TM_USART_Init(UART4, TM_USART_PinsPack_1, 9600);
   //InitUART4(9600);
   
-  //TM_USART_Init(USART2, TM_USART_PinsPack_2, 9600);
-  //TM_USART_Init(USART3, TM_USART_PinsPack_1, 9600);
+  TM_USART_Init(USART2, TM_USART_PinsPack_2, 9600);
+  TM_USART_Init(USART3, TM_USART_PinsPack_3, 9600);
   //Put string to terminal
- // TM_USART_Puts(USART2, "Hello world\n\r");
-  //TM_USART_Puts(USART3, "Hello world\n\r");
+  TM_USART_Puts(USART3, "Hello world\n\r");
 
   //InitUART5(9600);
   /* Initialize UART5 for debug */
@@ -97,7 +97,7 @@ int main()
     ;
   }
   
-  
+  TM_USART_Puts(USART2, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
   
   
   /* Version 1.1 added */
@@ -138,6 +138,7 @@ int main()
   while(1)
   {
     ParseCommand();
+    ParseGPSData();
     
     // 10ms process
     if(0 != (u8FlagForprocesses & FLAG_10MS))
@@ -170,9 +171,6 @@ int main()
           {
             if(f_mount(&FatFs, "", 1) == FR_OK)
             {
-              //Mounted OK, turn on RED LED
-              //TM_DISCO_LedOn(LED_RED);
-              
               //Try to open file
               if(f_open(&fil, "1stfile.txt", FA_OPEN_ALWAYS | FA_READ | FA_WRITE) == FR_OK)
               {
@@ -206,6 +204,7 @@ int main()
         //Mounted OK, turn on RED LED
         //TM_DISCO_LedOn(LED_RED);
         
+      /*
         if(1 == u8StateOfSDCard)
         {
           //Try to open file
@@ -224,13 +223,28 @@ int main()
               //Turn on both leds
               //TM_DISCO_LedOn(LED_GREEN | LED_RED);
             }
-
+  
             //Close file, don't forget this!
             //f_close(&fil);
             //SetRedLed(Bit_RESET);
           }
+      */
         //}
+      
+      if(1 == u8StateOfSDCard)
+      {
+        if(0 != GetRMCStatus())
+        {
+          GetRMCMessage(tempString);
+          f_puts(tempString, &fil);
+        }
         
+        if(0 != GetGGAStatus())
+        {
+          GetGGAMessage(tempString);
+          f_puts(tempString, &fil);
+        }
+      }
     
       //  //Unmount drive, don't forget this!
       //  f_mount(0, "", 1);

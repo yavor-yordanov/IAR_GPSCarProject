@@ -28,6 +28,11 @@ const char MANUAL_CONTROL_ON[LENGTH_COMMAND_13] = "#MAN_CONTR ON";
 const char MANUAL_CONTROL_OFF[LENGTH_COMMAND_14] = "#MAN_CONTR OFF";
 // Rotation degrees
 const char ROTATION_DEGREES[LENGTH_COMMAND_12] = "#ROT_DEG 000";
+// RMC message ID
+const char RMC_MESSAGE_ID[LENGTH_RMC_ID] = "$GPRMC";
+// GGA message ID
+const char GGA_MESSAGE_ID[LENGTH_GGA_ID] = "$GPGGA";
+
 
 static uint8_t u8USART3_BufferIndex = 0;
 static uint8_t u8USART2_BufferIndex = 0;
@@ -37,9 +42,14 @@ volatile char USART3_DynamicBuffer[MAX_COMMAND_LENGTH];
 volatile char USART2_DynamicBuffer[MAX_NMEA_LENGTH];
 volatile char USART3_Buffer[MAX_COMMAND_LENGTH];
 volatile char USART2_Buffer[MAX_NMEA_LENGTH];
+uint8_t u8RMC_Mess_Ready = 0;
+char RMC_MESSAGE[MAX_NMEA_LENGTH];
+uint8_t u8GGA_Mess_Ready = 0;
+char GGA_MESSAGE[MAX_NMEA_LENGTH];
 
 static uint8_t isDigit(char cChar);
 uint8_t  u8CurrentServo1Degrees = 50;
+volatile uint8_t  u8Index = 0;
 
 static uint8_t isDigit(char cChar)
 {
@@ -54,14 +64,20 @@ static uint8_t isDigit(char cChar)
 }
 
 void USART2_ReceivedChar(char cChar)
-{
+{ 
   if(cChar == '\n')
   {
     u8USART2_BufferIndex = 0;
     
     // ***** This block should be atomic *****
     memcpy((void *)USART2_Buffer, (void const *)USART2_DynamicBuffer, MAX_NMEA_LENGTH);
-    memset((void *)USART2_DynamicBuffer[0], 0, MAX_NMEA_LENGTH);
+    memset((void *)USART2_DynamicBuffer, 0, MAX_NMEA_LENGTH);
+    /*
+    for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
+    {
+      USART2_DynamicBuffer[u8Index] = 0;
+    }
+    */
     // ***************************************
     
     u8GPSReadyFlag = READY;
@@ -83,7 +99,7 @@ void USART3_ReceivedChar(char cChar)
     
     // ***** This block should be atomic *****
     memcpy((void *)USART3_Buffer, (void const *)USART3_DynamicBuffer, MAX_COMMAND_LENGTH);
-    memset((void *)USART3_DynamicBuffer[0], 0, MAX_COMMAND_LENGTH);
+    memset((void *)USART3_DynamicBuffer, 0, MAX_COMMAND_LENGTH);
     // ***************************************
     
     u8ReadyFlag = READY;
@@ -97,9 +113,95 @@ void USART3_ReceivedChar(char cChar)
   }
 }
 
-extern void GetCurrentServoDegrees(uint8_t *pu8Degrees)
+void GetCurrentServoDegrees(uint8_t *pu8Degrees)
 {
   *pu8Degrees = u8CurrentServo1Degrees;
+}
+
+uint8_t GetRMCStatus(void)
+{
+  return u8RMC_Mess_Ready;
+}
+
+void GetRMCMessage(char string[])
+{
+  uint8_t u8Index = 0;
+  
+  memcpy((void *)string, (void const *)RMC_MESSAGE, MAX_NMEA_LENGTH);
+  memset((void *)RMC_MESSAGE, 0, MAX_NMEA_LENGTH);
+  
+  /*
+  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
+  {
+    string[u8Index] = RMC_MESSAGE[u8Index];
+  }
+  
+  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
+  {
+    RMC_MESSAGE[u8Index] = 0;
+  }
+  */
+  
+  u8RMC_Mess_Ready = 0;
+}
+
+uint8_t GetGGAStatus(void)
+{
+  return u8GGA_Mess_Ready;
+}
+
+void GetGGAMessage(char string[])
+{
+  uint8_t u8Index = 0;
+
+  memcpy((void *)string, (void const *)GGA_MESSAGE, MAX_NMEA_LENGTH);
+  memset((void *)GGA_MESSAGE, 0, MAX_NMEA_LENGTH);
+  
+  /*
+  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
+  {
+    string[u8Index] = GGA_MESSAGE[u8Index];
+  }
+  
+  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
+  {
+    GGA_MESSAGE[u8Index] = 0;
+  }
+  */
+  
+  u8GGA_Mess_Ready = 0;  
+}
+
+void ParseGPSData(void)
+{
+  uint8_t u8Length = 0;
+  
+  if(READY == u8GPSReadyFlag)
+  {
+    while(('\r' != USART2_Buffer[u8Length]) && ((MAX_NMEA_LENGTH - 1) > u8Length))
+    {
+      u8Length++;
+    }
+    
+    // Replace symbol \r with \n because file system add auto symbol \r
+    USART2_Buffer[u8Length] = '\n';
+
+    if(0 == memcmp((void const *)USART2_Buffer, RMC_MESSAGE_ID, LENGTH_RMC_ID))
+    {
+      memcpy((void *)RMC_MESSAGE, (void const *)USART2_Buffer, MAX_NMEA_LENGTH);
+      u8RMC_Mess_Ready = 1;
+    }
+    else
+    if(0 == memcmp((void const *)USART2_Buffer, GGA_MESSAGE_ID, LENGTH_GGA_ID))
+    {
+      memcpy((void *)GGA_MESSAGE, (void const *)USART2_Buffer, MAX_NMEA_LENGTH);
+      u8GGA_Mess_Ready = 1;
+    }
+    
+    //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+
+    u8GPSReadyFlag = NOT_READY;
+  }
 }
 
 void ParseCommand(void)
@@ -223,9 +325,4 @@ void ParseCommand(void)
 
     u8ReadyFlag = NOT_READY;
   }
-}
-
-void ParseGPSData(void)
-{
-  //TODO: Add parser for received GPS data (NMEA)
 }

@@ -15,6 +15,14 @@
 #define NOT_READY 0
 #endif
 
+#ifndef LENGTH_RMC_ID
+#define LENGTH_RMC_ID 6
+#endif
+
+#ifndef LENGTH_GGA_ID
+#define LENGTH_GGA_ID 6
+#endif
+
 #ifndef LENGTH_COMMAND_9
 #define LENGTH_COMMAND_9  9
 #endif
@@ -59,6 +67,23 @@ extern void ParseCommand(void);
  */
 extern void ParseGPSData(void);
 
+/* 
+ * Get received servo degrees
+ */
 extern void GetCurrentServoDegrees(uint8_t *pu8Degrees);
+
+/* 
+ * Get RMC message status
+ */
+extern uint8_t GetRMCStatus(void);
+
+/* 
+ * Get GGA message status
+ */
+extern uint8_t GetGGAStatus(void);
+
+extern void GetRMCMessage(char string[]);
+
+extern void GetGGAMessage(char string[]);
 
 #endif

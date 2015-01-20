@@ -7,6 +7,8 @@
 #include "tm_stm32f4_gps.h"
 #include "stm32f407_LedDrv.h"
 #include "ComParser.h"
+#include "info.h"
+#include "parser.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -44,7 +46,6 @@ int main()
   char buffer[40];
   uint8_t i;
   float temp;
-  
   uint16_t u16Counter = 0;
   uint8_t  u8LedControlMask = 1;
   uint8_t  u8OldServo1Degrees = 50;
@@ -53,6 +54,9 @@ int main()
   uint8_t  u8StateOfSDCard = 0;        // State of SD card 1 - Mount and Open file; 0 - Unmount and close file
   uint32_t u32TempUserButtonValue = 0;
   pointerSendBuffer = sendBuffer;
+  nmeaINFO info;
+    
+  nmeaPARSER parser;
   
   //Fatfs object
   FATFS FatFs;
@@ -80,6 +84,10 @@ int main()
   TM_USART_Init(USART3, TM_USART_PinsPack_3, 9600);
   //Put string to terminal
   TM_USART_Puts(USART3, "Hello world\n\r");
+  
+  nmea_zero_INFO(&info);
+    
+  nmea_parser_init(&parser);
 
   //InitUART5(9600);
   /* Initialize UART5 for debug */
@@ -164,6 +172,7 @@ int main()
           {
             f_close(&fil);
             f_mount(0, "", 1);
+            nmea_parser_destroy(&parser);
             u8StateOfSDCard = 0;
             SetBlueLed(Bit_RESET);
           }
@@ -237,12 +246,14 @@ int main()
         {
           GetRMCMessage(tempString);
           f_puts(tempString, &fil);
+          nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
         }
         
         if(0 != GetGGAStatus())
         {
           GetGGAMessage(tempString);
           f_puts(tempString, &fil);
+          nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
         }
       }
     

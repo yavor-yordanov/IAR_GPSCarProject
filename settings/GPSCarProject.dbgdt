@@ -34,7 +34,7 @@
         
         
       <ShowCodeCoverage>0</ShowCodeCoverage><ShowInstrProfiling>0</ShowInstrProfiling></Disassembly>
-    <WATCH_1><expressions><item>USART2_Buffer</item><item>u32SystemTimer</item><item>u8FlagForprocesses</item><item>u32UserButtonValue</item><item>dir[DIR_Attr]</item><item>AM_ARC</item><item>pb</item><item>RMC_MESSAGE[MAX_NMEA_LENGTH]</item><item>GGA_MESSAGE[MAX_NMEA_LENGTH]</item><item>RMC_MESSAGE</item><item>tempString</item><item>USART2_DynamicBuffer</item><item>u8Index</item><item></item></expressions><col-names><item>Expression</item><item>Location</item><item>Type</item><item>Value</item></col-names><col-widths><item>240</item><item>150</item><item>100</item><item>658</item></col-widths></WATCH_1><Breakpoints><col-names><item>Breakpoint</item><item>_I0</item></col-names><col-widths><item>619</item><item>35</item></col-widths></Breakpoints></Static>
+    <WATCH_1><expressions><item>USART2_Buffer</item><item>u32SystemTimer</item><item>u8FlagForprocesses</item><item>u32UserButtonValue</item><item>dir[DIR_Attr]</item><item>AM_ARC</item><item>pb</item><item>RMC_MESSAGE[MAX_NMEA_LENGTH]</item><item>GGA_MESSAGE[MAX_NMEA_LENGTH]</item><item>RMC_MESSAGE</item><item>tempString</item><item>USART2_DynamicBuffer</item><item>u8Index</item><item/></expressions><col-names><item>Expression</item><item>Location</item><item>Type</item><item>Value</item></col-names><col-widths><item>240</item><item>150</item><item>100</item><item>658</item></col-widths></WATCH_1><Breakpoints><col-names><item>Breakpoint</item><item>_I0</item></col-names><col-widths><item>619</item><item>35</item></col-widths></Breakpoints></Static>
     <Windows>
       
       

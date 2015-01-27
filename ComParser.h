@@ -47,6 +47,34 @@
 #define LENGTH_COMMAND_14 14
 #endif
 
+enum ParseErrors
+{
+  OK,
+  CRC_OR_VALIDITY_ERR
+};
+
+typedef struct GPSDateTime
+{
+  int     year;  // Years since 1900
+  int     mon;   // Months since January - [0,11]
+  int     day;   // Day of the month - [1,31]
+  int     hour;  // Hours since midnight - [0,23]
+  int     min;   // Minutes after the hour - [0,59]
+  int     sec;   // Seconds after the minute - [0,59]
+  int     hsec;  // Hundredth part of second - [0,99]
+}tGPSDateTime;
+
+typedef struct GPSInfo
+{
+    uint8_t u8ValidityFlag;
+    int32_t i32Latitude;    //Latitude
+    int32_t i32Longitude;   //Longitude
+    double  ddSpeed;        //Speed
+    double  ddDirection;    //Direction depending North in degrees
+    tGPSDateTime sDateTime; //Date and time information
+} tGPSInfo;
+
+
 /*
  * Get recived char from port USART3
  */
@@ -85,5 +113,9 @@ extern uint8_t GetGGAStatus(void);
 extern void GetRMCMessage(char string[]);
 
 extern void GetGGAMessage(char string[]);
+
+extern uint8_t ParseRMCMessage(void);
+
+extern void GetRMCInfoStructure();
 
 #endif

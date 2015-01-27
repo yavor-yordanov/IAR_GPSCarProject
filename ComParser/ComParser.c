@@ -46,6 +46,7 @@ uint8_t u8RMC_Mess_Ready = 0;
 char RMC_MESSAGE[MAX_NMEA_LENGTH];
 uint8_t u8GGA_Mess_Ready = 0;
 char GGA_MESSAGE[MAX_NMEA_LENGTH];
+tGPSInfo sGPSInfo;
 
 static uint8_t isDigit(char cChar);
 uint8_t  u8CurrentServo1Degrees = 50;
@@ -126,22 +127,10 @@ uint8_t GetRMCStatus(void)
 void GetRMCMessage(char string[])
 {
   uint8_t u8Index = 0;
-  
+
   memcpy((void *)string, (void const *)RMC_MESSAGE, MAX_NMEA_LENGTH);
   memset((void *)RMC_MESSAGE, 0, MAX_NMEA_LENGTH);
-  
-  /*
-  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
-  {
-    string[u8Index] = RMC_MESSAGE[u8Index];
-  }
-  
-  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
-  {
-    RMC_MESSAGE[u8Index] = 0;
-  }
-  */
-  
+
   u8RMC_Mess_Ready = 0;
 }
 
@@ -156,20 +145,8 @@ void GetGGAMessage(char string[])
 
   memcpy((void *)string, (void const *)GGA_MESSAGE, MAX_NMEA_LENGTH);
   memset((void *)GGA_MESSAGE, 0, MAX_NMEA_LENGTH);
-  
-  /*
-  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
-  {
-    string[u8Index] = GGA_MESSAGE[u8Index];
-  }
-  
-  for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
-  {
-    GGA_MESSAGE[u8Index] = 0;
-  }
-  */
-  
-  u8GGA_Mess_Ready = 0;  
+
+  u8GGA_Mess_Ready = 0;
 }
 
 void ParseGPSData(void)
@@ -201,6 +178,30 @@ void ParseGPSData(void)
     //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
 
     u8GPSReadyFlag = NOT_READY;
+  }
+}
+
+uint8_t ParseRMCMessage(void)
+{
+  uint8_t u8Index;
+  uint8_t u8CalcCRCValue;
+  uint8_t u8ReceivedCRCValue;
+  uint8_t u8ChecksumResult = CRC_OR_VALIDITY_ERR;
+
+  u8CalcCRCValue = RMC_MESSAGE[1];
+  for(u8Index = 2; u8Index < MAX_NMEA_LENGTH; u8Index++)
+  {
+    if('*' == RMC_MESSAGE[u8Index])
+    {
+      //Get received checksum
+      
+      break;
+    }
+    else
+    {
+      //Calculate checksum
+      u8CalcCRCValue ^= RMC_MESSAGE[u8Index];
+    }
   }
 }
 

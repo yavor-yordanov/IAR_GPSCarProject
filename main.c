@@ -4,11 +4,11 @@
 #include "tm_stm32f4_fatfs.h"
 #include "diskio.h"
 #include "tm_stm32f4_servo.h"
-#include "tm_stm32f4_gps.h"
+//#include "tm_stm32f4_gps.h"
+#include "tm_stm32f4_usart.h"
+#include "nmea.h"
 #include "stm32f407_LedDrv.h"
 #include "ComParser.h"
-#include "info.h"
-#include "parser.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -36,14 +36,14 @@ void USART_puts(USART_TypeDef* USARTx, volatile char *s);
 /*volatile*/ char sendBuffer[] = "$GPRMC,201633.000,A,4239.9272,N,02321.8573,E,0.54,0.00,200114,,,A*65\r\n$GPVTG,0.00,T,,M,0.54,N,0.99,K,A*3C\r\n$GPGGA,201633.000,4239.9272,N,02321.8573,E,1,5,1.28,574.1,M,36.7,M,,*5B\r\n$GPGSA,A,3,12,24,28,26,15,,,,,,,,1.58,1.28,0.93*00\r\n$GPGSV,2,1,06,15,59,228,45,24,52,307,44,39,40,177,38,26,37,169,37*76\r\n$GPGSV,2,2,06,12,25,247,43,28,20,056,30*75\r\n$GPGLL,4239.9272,N,02321.8573,E,201633.000,A,A*55\r\n$GPTXT,01,01,02,ANTSTATUS=OPEN*2B\r\n";
 volatile char *pointerSendBuffer;
 char tempString[MAX_NMEA_LENGTH];
+char tempInfoStatus[40];
 
 int main()
 {
-  TM_GPS_Data_t GPS_Data;
-  TM_GPS_Result_t result, current;
-  TM_GPS_Float_t GPS_Float;
-  TM_GPS_Distance_t GPS_Distance;
-  char buffer[40];
+  //TM_GPS_Data_t GPS_Data;
+  //TM_GPS_Result_t result, current;
+  //TM_GPS_Float_t GPS_Float;
+  //TM_GPS_Distance_t GPS_Distance;
   uint8_t i;
   float temp;
   uint16_t u16Counter = 0;
@@ -55,7 +55,6 @@ int main()
   uint32_t u32TempUserButtonValue = 0;
   pointerSendBuffer = sendBuffer;
   nmeaINFO info;
-    
   nmeaPARSER parser;
   
   //Fatfs object
@@ -84,10 +83,6 @@ int main()
   TM_USART_Init(USART3, TM_USART_PinsPack_3, 9600);
   //Put string to terminal
   TM_USART_Puts(USART3, "Hello world\n\r");
-  
-  nmea_zero_INFO(&info);
-    
-  nmea_parser_init(&parser);
 
   //InitUART5(9600);
   /* Initialize UART5 for debug */
@@ -98,6 +93,9 @@ int main()
   /* Initialize servo 1, TIM2, Channel 1, Pinspack 2 = PA5 */
   //TM_SERVO_Init(&Servo1, TIM2, TM_PWM_Channel_1, TM_PWM_PinsPack_2);
   //TM_SERVO_SetDegrees(&Servo1, 90);
+   
+   //nmea_zero_INFO(&info);
+   //nmea_parser_init(&parser);
   
   //Dealy from 2 seconds
   while(u32SystemTimer < 5000)
@@ -110,20 +108,22 @@ int main()
   
   /* Version 1.1 added */
     /* Set two test coordinates */
+  /*
     GPS_Distance.Latitude1 = 48.300215;
     GPS_Distance.Longitude1 = -122.285903;
     GPS_Distance.Latitude2 = 45.907813;
     GPS_Distance.Longitude2 = 56.659407;
     
-    /* Calculate distance and bearing between 2 pointes */
+    / Calculate distance and bearing between 2 pointes /
     TM_GPS_DistanceBetween(&GPS_Distance);
-    /* Convert float number */
+    / Convert float number /
     TM_GPS_ConvertFloat(GPS_Distance.Distance, &GPS_Float, 6);
     sprintf(buffer, "Distance is: %d.%06d meters\n", GPS_Float.Integer, GPS_Float.Decimal);
     //TM_USART_Puts(UART4, buffer);
     TM_GPS_ConvertFloat(GPS_Distance.Bearing, &GPS_Float, 6);
     sprintf(buffer, "Bearing is: %d.%06d degrees\n\n", GPS_Float.Integer, GPS_Float.Decimal);
     //TM_USART_Puts(UART4, buffer);
+  */
   
   //TM_USART_Puts(UART5, sendBuffer);
     
@@ -172,7 +172,6 @@ int main()
           {
             f_close(&fil);
             f_mount(0, "", 1);
-            nmea_parser_destroy(&parser);
             u8StateOfSDCard = 0;
             SetBlueLed(Bit_RESET);
           }
@@ -239,14 +238,37 @@ int main()
           }
       */
         //}
-      
+
       if(1 == u8StateOfSDCard)
       {
         if(0 != GetRMCStatus())
         {
           GetRMCMessage(tempString);
           f_puts(tempString, &fil);
-          nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
+          
+          if(OK == ParseRMCMessage())
+          {
+            
+          }
+          else
+          {
+            
+          }
+
+          //nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
+
+          // Send latitude data received from GPS module
+          sprintf(tempInfoStatus, "Latitude: %f\n", info.lat);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          // Send longitude data received from GPS module
+          sprintf(tempInfoStatus, "Longitude: %f\n", info.lon);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          // Send speed data received from GPS module
+          sprintf(tempInfoStatus, "Speed: %f\n", info.speed);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          // Send direction data received from GPS module
+          sprintf(tempInfoStatus, "Direction: %f\n", info.direction);
+          TM_USART_Puts(USART2, tempInfoStatus);
         }
         
         if(0 != GetGGAStatus())
@@ -254,6 +276,8 @@ int main()
           GetGGAMessage(tempString);
           f_puts(tempString, &fil);
           nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
+          //TODO: Send neccessary information to PC
+          //TM_USART_Puts(USART3, "Hello world\n\r");
         }
       }
     
@@ -418,9 +442,10 @@ int main()
           // We already read data, nothing new was received from GPS
         }
     
-    */
-    
+    */ 
   }
+  
+  //nmea_parser_destroy(&parser);
 }
 
 void SysTick_Handler(void)

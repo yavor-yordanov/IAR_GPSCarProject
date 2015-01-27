@@ -45,18 +45,12 @@ void nmea_time_now(nmeaTIME *stm)
 
 void nmea_time_now(nmeaTIME *stm)
 {
-    nmeaTIME lt;
-    stm *tt;
-
-    time(&lt);
-    tt = gmtime(&lt);
-
-    stm->year = tt->tm_year;
-    stm->mon = tt->tm_mon;
-    stm->day = tt->tm_mday;
-    stm->hour = tt->tm_hour;
-    stm->min = tt->tm_min;
-    stm->sec = tt->tm_sec;
+    stm->year = 1900;
+    stm->mon  = 0;
+    stm->day  = 1;
+    stm->hour = 0;
+    stm->min  = 0;
+    stm->sec  = 0;
     stm->hsec = 0;
 }
 

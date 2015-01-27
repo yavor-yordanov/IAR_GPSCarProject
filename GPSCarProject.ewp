@@ -1825,27 +1825,6 @@
     <file>
       <name>$PROJ_DIR$\ComParser\ComParser.c</name>
     </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\context.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\gmath.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\info.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\parse.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\parser.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\sentence.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\ComParser\time.c</name>
-    </file>
   </group>
   <group>
     <name>EWARM</name>
@@ -1871,7 +1850,22 @@
   <group>
     <name>GPS</name>
     <file>
-      <name>$PROJ_DIR$\stm32f407_GPSLibrary\tm_stm32f4_gps.c</name>
+      <name>$PROJ_DIR$\stm32f407_GPSLibrary\context.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\stm32f407_GPSLibrary\info.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\stm32f407_GPSLibrary\parse.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\stm32f407_GPSLibrary\parser.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\stm32f407_GPSLibrary\time.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\stm32f407_GPSLibrary\tok.c</name>
     </file>
   </group>
   <group>

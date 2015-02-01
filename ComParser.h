@@ -3,6 +3,8 @@
 
 #include "stm32f4xx.h"
 #include "stm32f407_LedDrv.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_COMMAND_LENGTH 16
 #define MAX_NMEA_LENGTH    82 
@@ -47,10 +49,38 @@
 #define LENGTH_COMMAND_14 14
 #endif
 
+#ifndef MAX_SPEED_PAR_LENGHT
+#define MAX_SPEED_PAR_LENGHT 6
+#endif
+
+#ifndef KNOTS_TO_KM_H
+#define KNOTS_TO_KM_H ((double) 1.852)
+#endif
+
+#ifndef MAX_COG_PAR_LENGHT
+#define MAX_COG_PAR_LENGHT 6
+#endif
+
+//Define parameters sentences in RMC message
+//Example: $GPRMC,013732.000,A,3150.7238,N,11711.7278,E,0.00,0.00,220413,,,A*68
+#define RMC_UTC 1
+#define RMC_DATA_VALID 2
+#define RMC_LATITUDE 3
+#define RMC_N_S 4          //North and South latitutde
+#define RMC_LONGITUDE 5
+#define RMC_E_W 6          //East and West longitude
+#define RMC_SPEED 7
+#define RMC_COG 8          //Course over ground
+#define RMC_DATE 9
+#define RMC_MAG_VAR 10     //Magnetic variation in degree
+#define RMC_MAG_VAR_EW 11  //Magnetic variation E/W indicator
+#define RMC_POS_MODE 12    //Positioning mode
+
+
 enum ParseErrors
 {
-  OK,
-  CRC_OR_VALIDITY_ERR
+  CHECKSUM_OK,
+  CHECKSUM_OR_VALIDITY_ERR
 };
 
 typedef struct GPSDateTime
@@ -61,16 +91,16 @@ typedef struct GPSDateTime
   int     hour;  // Hours since midnight - [0,23]
   int     min;   // Minutes after the hour - [0,59]
   int     sec;   // Seconds after the minute - [0,59]
-  int     hsec;  // Hundredth part of second - [0,99]
+//  int     hsec;  // Hundredth part of second - [0,99]
 }tGPSDateTime;
 
 typedef struct GPSInfo
 {
-    uint8_t u8ValidityFlag;
-    int32_t i32Latitude;    //Latitude
-    int32_t i32Longitude;   //Longitude
-    double  ddSpeed;        //Speed
-    double  ddDirection;    //Direction depending North in degrees
+    uint8_t u8ValidityFlag; //0 = V -invalid data; 1 = A - valid data
+    double  d32Latitude;    //Latitude
+    double  d32Longitude;   //Longitude
+    double  dSpeed;         //Speed
+    double  dDirection;     //Direction depending North in degrees
     tGPSDateTime sDateTime; //Date and time information
 } tGPSInfo;
 
@@ -117,5 +147,7 @@ extern void GetGGAMessage(char string[]);
 extern uint8_t ParseRMCMessage(void);
 
 extern void GetRMCInfoStructure();
+
+extern void GetGPSInfoData(tGPSInfo const * pGPSData);
 
 #endif

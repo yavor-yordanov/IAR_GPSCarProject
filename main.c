@@ -37,6 +37,7 @@ void USART_puts(USART_TypeDef* USARTx, volatile char *s);
 volatile char *pointerSendBuffer;
 char tempString[MAX_NMEA_LENGTH];
 char tempInfoStatus[40];
+tGPSInfo sParsedGPSData;
 
 int main()
 {
@@ -96,7 +97,7 @@ int main()
    
    //nmea_zero_INFO(&info);
    //nmea_parser_init(&parser);
-  
+   
   //Dealy from 2 seconds
   while(u32SystemTimer < 5000)
   {
@@ -246,7 +247,7 @@ int main()
           GetRMCMessage(tempString);
           f_puts(tempString, &fil);
           
-          if(OK == ParseRMCMessage())
+          if(CHECKSUM_OK == ParseRMCMessage())
           {
             
           }
@@ -255,27 +256,40 @@ int main()
             
           }
 
-          //nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
+          GetGPSInfoData(&sParsedGPSData);
+          sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          sprintf(tempInfoStatus, "Latitude: %f\n", sParsedGPSData.d32Latitude);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          sprintf(tempInfoStatus, "Longitude: %f\n", sParsedGPSData.d32Longitude);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          sprintf(tempInfoStatus, "Speed: %f\n", sParsedGPSData.dSpeed);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          sprintf(tempInfoStatus, "Direction: %f\n", sParsedGPSData.dDirection);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          sprintf(tempInfoStatus, "Date: %i.%i.%i\n", sParsedGPSData.sDateTime.year, sParsedGPSData.sDateTime.mon, sParsedGPSData.sDateTime.day);
+          TM_USART_Puts(USART2, tempInfoStatus);
+          sprintf(tempInfoStatus, "Hour: %i:%i:%i\n", sParsedGPSData.sDateTime.hour, sParsedGPSData.sDateTime.min, sParsedGPSData.sDateTime.sec);
+          TM_USART_Puts(USART2, tempInfoStatus);
 
+          //nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
           // Send latitude data received from GPS module
-          sprintf(tempInfoStatus, "Latitude: %f\n", info.lat);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          // Send longitude data received from GPS module
-          sprintf(tempInfoStatus, "Longitude: %f\n", info.lon);
-          TM_USART_Puts(USART2, tempInfoStatus);
+
+
+
           // Send speed data received from GPS module
-          sprintf(tempInfoStatus, "Speed: %f\n", info.speed);
-          TM_USART_Puts(USART2, tempInfoStatus);
+          //sprintf(tempInfoStatus, "Speed: %f\n", info.speed);
+          //TM_USART_Puts(USART2, tempInfoStatus);
           // Send direction data received from GPS module
-          sprintf(tempInfoStatus, "Direction: %f\n", info.direction);
-          TM_USART_Puts(USART2, tempInfoStatus);
+          //sprintf(tempInfoStatus, "Direction: %f\n", info.direction);
+          //TM_USART_Puts(USART2, tempInfoStatus);
         }
         
         if(0 != GetGGAStatus())
         {
-          GetGGAMessage(tempString);
-          f_puts(tempString, &fil);
-          nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
+          //GetGGAMessage(tempString);
+          //f_puts(tempString, &fil);
+          //nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
           //TODO: Send neccessary information to PC
           //TM_USART_Puts(USART3, "Hello world\n\r");
         }

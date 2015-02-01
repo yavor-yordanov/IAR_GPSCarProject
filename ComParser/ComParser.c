@@ -1,4 +1,3 @@
-#include <string.h>
 #include "ComParser.h"
 
 // Led commands
@@ -49,8 +48,10 @@ char GGA_MESSAGE[MAX_NMEA_LENGTH];
 tGPSInfo sGPSInfo;
 
 static uint8_t isDigit(char cChar);
+static uint8_t isHex(char cChar);
+static uint8_t HexToDec(char cChar);
 uint8_t  u8CurrentServo1Degrees = 50;
-volatile uint8_t  u8Index = 0;
+volatile uint8_t u8Index = 0;
 
 static uint8_t isDigit(char cChar)
 {
@@ -61,6 +62,31 @@ static uint8_t isDigit(char cChar)
   else
   {
     return 0;
+  }
+}
+
+static uint8_t isHex(char cChar)
+{
+  if((('0' <= cChar) && ('9' >= cChar)) ||
+     (('A' <= cChar) && ('F' >= cChar)))
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+static uint8_t HexToDec(char cChar)
+{
+  if(('0' <= cChar) && ('9' >= cChar))
+  {
+    return cChar - '0';
+  }
+  else
+  {
+    return 10 + (cChar - 'A');
   }
 }
 
@@ -119,6 +145,11 @@ void GetCurrentServoDegrees(uint8_t *pu8Degrees)
   *pu8Degrees = u8CurrentServo1Degrees;
 }
 
+extern void GetGPSInfoData(tGPSInfo const * pGPSData)
+{
+  memcpy((void *)pGPSData, (void const *)&sGPSInfo, sizeof(tGPSInfo));
+}
+
 uint8_t GetRMCStatus(void)
 {
   return u8RMC_Mess_Ready;
@@ -129,7 +160,7 @@ void GetRMCMessage(char string[])
   uint8_t u8Index = 0;
 
   memcpy((void *)string, (void const *)RMC_MESSAGE, MAX_NMEA_LENGTH);
-  memset((void *)RMC_MESSAGE, 0, MAX_NMEA_LENGTH);
+  //memset((void *)RMC_MESSAGE, 0, MAX_NMEA_LENGTH);
 
   u8RMC_Mess_Ready = 0;
 }
@@ -184,9 +215,16 @@ void ParseGPSData(void)
 uint8_t ParseRMCMessage(void)
 {
   uint8_t u8Index;
+  uint8_t u8SpeedIndex;
+  uint8_t u8SpeedIndexArray;
+  uint8_t u8COGIndex;
+  uint8_t u8COGIndexArray;
   uint8_t u8CalcCRCValue;
   uint8_t u8ReceivedCRCValue;
-  uint8_t u8ChecksumResult = CRC_OR_VALIDITY_ERR;
+  uint8_t u8ChecksumResult = CHECKSUM_OR_VALIDITY_ERR;
+  uint8_t u8CountComma = 0;
+  char cSpeedArray[MAX_SPEED_PAR_LENGHT];
+  char cCOGArray[MAX_COG_PAR_LENGHT];
 
   u8CalcCRCValue = RMC_MESSAGE[1];
   for(u8Index = 2; u8Index < MAX_NMEA_LENGTH; u8Index++)
@@ -194,6 +232,16 @@ uint8_t ParseRMCMessage(void)
     if('*' == RMC_MESSAGE[u8Index])
     {
       //Get received checksum
+      if(isHex(RMC_MESSAGE[u8Index+1]) && isHex(RMC_MESSAGE[u8Index+2]))
+      {
+        u8ReceivedCRCValue = HexToDec(RMC_MESSAGE[u8Index+1]) << 4;
+        u8ReceivedCRCValue |= HexToDec(RMC_MESSAGE[u8Index+2]);
+        //Compare calculated and received checksum value
+        if(u8ReceivedCRCValue == u8CalcCRCValue)
+        {
+          u8ChecksumResult = CHECKSUM_OK;
+        }
+      }
       
       break;
     }
@@ -203,6 +251,157 @@ uint8_t ParseRMCMessage(void)
       u8CalcCRCValue ^= RMC_MESSAGE[u8Index];
     }
   }
+  
+  if(CHECKSUM_OK == u8ChecksumResult)
+  {
+    for(u8Index = 0; '*' != RMC_MESSAGE[u8Index]; u8Index++)
+    {
+      if(',' == RMC_MESSAGE[u8Index])
+      {
+        u8CountComma++;
+
+        //$GPRMC,172454.000,A,4239.9114,N,02322.4062,E,0.17,0.00,190115,,,A*64 - with GPS fix
+        //$GPRMC,235950.799,V,,,,,0.00,0.00,050180,,,N*4E                      - without GPS fix
+        switch(u8CountComma)
+        {
+        case RMC_UTC:
+          //example: ....,172454.000,.....  ;  ,,
+          if(',' != RMC_MESSAGE[u8Index+1])   //next symbol is different from ',' (empty parameter)
+          {
+            sGPSInfo.sDateTime.hour = (10*(RMC_MESSAGE[u8Index+1]-'0')) + (RMC_MESSAGE[u8Index+2]-'0');
+            sGPSInfo.sDateTime.min  = (10*(RMC_MESSAGE[u8Index+3]-'0')) + (RMC_MESSAGE[u8Index+4]-'0');
+            sGPSInfo.sDateTime.sec  = (10*(RMC_MESSAGE[u8Index+5]-'0')) + (RMC_MESSAGE[u8Index+6]-'0');
+          }
+          else
+          {
+            sGPSInfo.sDateTime.hour = 0;
+            sGPSInfo.sDateTime.min  = 0;
+            sGPSInfo.sDateTime.sec  = 0;
+          }
+          break;
+        case RMC_DATA_VALID:
+          //example: ...,A,...  ;  ...,V,...  ;  ,,
+          if(',' != RMC_MESSAGE[u8Index+1])
+          {
+            if('A' ==RMC_MESSAGE[u8Index+1])
+            {
+              sGPSInfo.u8ValidityFlag = 1;
+            }
+            else
+            {
+              sGPSInfo.u8ValidityFlag = 0;
+            }
+          }
+          else
+          {
+            sGPSInfo.u8ValidityFlag = 0;
+          }
+          break;
+        case RMC_LATITUDE:
+          //Parase North-South parameter together with latitude (RMC_N_S)
+          //example: ...,4239.9114,N,... ; ...,,,...  ‘ddmm.mmmm’ (degree and minutes)
+          if(',' != RMC_MESSAGE[u8Index+1])
+          {
+            sGPSInfo.d32Latitude = 60*((10*(RMC_MESSAGE[u8Index+1]-'0')) + (RMC_MESSAGE[u8Index+2]-'0')) + 
+                                      ((10*(RMC_MESSAGE[u8Index+3]-'0')) + (RMC_MESSAGE[u8Index+4]-'0')) +
+                                      (((1000*(RMC_MESSAGE[u8Index+6]-'0')) + (100*(RMC_MESSAGE[u8Index+7]-'0')) +
+                                       (10*(RMC_MESSAGE[u8Index+8]-'0')) + (RMC_MESSAGE[u8Index+9]-'0'))/10000.0);
+            if('S' == RMC_MESSAGE[u8Index+11])
+            {
+              sGPSInfo.d32Latitude *= -1;
+            }
+          }
+          else
+          {
+            sGPSInfo.d32Latitude = 0;
+          }
+          break;
+        case RMC_LONGITUDE:
+          //Parse East-West parameter together with Longitude (RMC_E_W)
+          //example: ...,02322.4062,E,... ; ...,,,... ‘dddmm.mmmm’ (degree and minutes)
+          if(',' != RMC_MESSAGE[u8Index+1])
+          {
+            sGPSInfo.d32Longitude = 60*((100*(RMC_MESSAGE[u8Index+1]-'0')) + (10*(RMC_MESSAGE[u8Index+2]-'0')) + (RMC_MESSAGE[u8Index+3]-'0')) + 
+                                      ((10*(RMC_MESSAGE[u8Index+4]-'0')) + (RMC_MESSAGE[u8Index+5]-'0')) +
+                                      (((1000*(RMC_MESSAGE[u8Index+7]-'0')) + (100*(RMC_MESSAGE[u8Index+8]-'0')) +
+                                       (10*(RMC_MESSAGE[u8Index+9]-'0')) + (RMC_MESSAGE[u8Index+10]-'0'))/10000.0);
+            if('W' == RMC_MESSAGE[u8Index+12])
+            {
+              sGPSInfo.d32Longitude *= -1;
+            }
+          }
+          else
+          {
+            sGPSInfo.d32Longitude = 0;
+          }
+          break;
+        case RMC_SPEED:
+          //example: ...,0.17,...  ;  ...,0.00,...
+          if(',' != RMC_MESSAGE[u8Index+1])
+          {
+            u8SpeedIndex = u8Index+1;
+            u8SpeedIndexArray = 0;
+            
+            while((',' != RMC_MESSAGE[u8SpeedIndex]) && (MAX_SPEED_PAR_LENGHT > u8SpeedIndexArray))
+            {
+              cSpeedArray[u8SpeedIndexArray] = RMC_MESSAGE[u8SpeedIndex];
+              u8SpeedIndexArray++;
+              u8SpeedIndex++;
+            }
+            
+            sGPSInfo.dSpeed = KNOTS_TO_KM_H * atof(cSpeedArray);  //convert knots to km/h
+          }
+          else
+          {
+            sGPSInfo.dSpeed = 0;
+          }
+          break;
+        case RMC_COG:
+          //example: ...,0.00,...  ;  ...,357,64,...   ;  ...,,...          
+          if(',' != RMC_MESSAGE[u8Index+1])
+          {
+            u8COGIndex = u8Index+1;
+            u8COGIndexArray = 0;
+            
+            while((',' != RMC_MESSAGE[u8COGIndex]) && (MAX_COG_PAR_LENGHT > u8COGIndexArray))
+            {
+              cCOGArray[u8COGIndexArray] = RMC_MESSAGE[u8COGIndex];
+              u8COGIndexArray++;
+              u8COGIndex++;
+            }
+            
+            sGPSInfo.dDirection = atof(cCOGArray);
+          }
+          else
+          {
+            sGPSInfo.dDirection = 0;
+          }          
+          break;
+        case RMC_DATE:
+          //example: ...,190115,... ; ...,,...
+          if(',' != RMC_MESSAGE[u8Index+1])   //next symbol is different from ',' (empty parameter)
+          {
+            sGPSInfo.sDateTime.day  = (10*(RMC_MESSAGE[u8Index+1]-'0')) + (RMC_MESSAGE[u8Index+2]-'0');
+            sGPSInfo.sDateTime.mon  = (10*(RMC_MESSAGE[u8Index+3]-'0')) + (RMC_MESSAGE[u8Index+4]-'0');
+            sGPSInfo.sDateTime.year = 2000 + (10*(RMC_MESSAGE[u8Index+5]-'0')) + (RMC_MESSAGE[u8Index+6]-'0');
+          }
+          else
+          {
+            sGPSInfo.sDateTime.day  = 1;
+            sGPSInfo.sDateTime.mon  = 1;
+            sGPSInfo.sDateTime.year = 2000;
+          }
+          break;
+        case RMC_MAG_VAR:
+        case RMC_MAG_VAR_EW:
+        case RMC_POS_MODE:
+          break;
+        }
+      }
+    }
+  }
+
+  return u8ChecksumResult;
 }
 
 void ParseCommand(void)

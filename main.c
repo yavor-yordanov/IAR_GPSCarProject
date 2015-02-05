@@ -4,7 +4,7 @@
 #include "tm_stm32f4_fatfs.h"
 #include "diskio.h"
 #include "tm_stm32f4_servo.h"
-//#include "tm_stm32f4_gps.h"
+#include "pwm_motor_control.h"
 #include "tm_stm32f4_usart.h"
 #include "nmea.h"
 #include "stm32f407_LedDrv.h"
@@ -64,8 +64,10 @@ int main()
   FIL fil;
   //Free and total space
   uint32_t total, free;
-  //Servo objects
+  //Servo object
   TM_SERVO_t Servo1; //, Servo2;
+  // Motor object
+  Motor_t Motor;
 
   //Initialize system
   SystemInit();
@@ -94,6 +96,10 @@ int main()
   /* Initialize servo 1, TIM2, Channel 1, Pinspack 2 = PA5 */
   //TM_SERVO_Init(&Servo1, TIM2, TM_PWM_Channel_1, TM_PWM_PinsPack_2);
   //TM_SERVO_SetDegrees(&Servo1, 90);
+  
+  PWM_Motor_Init(&Motor, TIM3, TM_PWM_Channel_2, TM_PWM_PinsPack_1);
+  PWM_Motor_SetDuty(&Motor, 20);
+
    
    //nmea_zero_INFO(&info);
    //nmea_parser_init(&parser);
@@ -200,45 +206,6 @@ int main()
       u16Counter = 1;
       //Flashing orange led indicates normal operation of the system
       ToggleOrangeLed();
-      
-      
-          //File opened, turn off RED and turn on GREEN led
-          //TM_DISCO_LedOn(LED_GREEN);
-          //TM_DISCO_LedOff(LED_RED);
-
-            //Mount drive
-      
-      //if (f_mount(&FatFs, "", 1) == FR_OK)
-      //{
-        //Mounted OK, turn on RED LED
-        //TM_DISCO_LedOn(LED_RED);
-        
-      /*
-        if(1 == u8StateOfSDCard)
-        {
-          //Try to open file
-          //if (f_open(&fil, "1stfile.txt", FA_OPEN_ALWAYS | FA_READ | FA_WRITE) == FR_OK)
-          //{
-            //SetRedLed(Bit_SET);
-          
-            //If we put more than 0 characters (everything OK)
-            if (f_puts("First string in my file\n", &fil) > 0) 
-            {
-              if (TM_FATFS_DriveSize(&total, &free) == FR_OK) 
-              {
-                //Data for drive size are valid
-              }
-              
-              //Turn on both leds
-              //TM_DISCO_LedOn(LED_GREEN | LED_RED);
-            }
-  
-            //Close file, don't forget this!
-            //f_close(&fil);
-            //SetRedLed(Bit_RESET);
-          }
-      */
-        //}
 
       if(1 == u8StateOfSDCard)
       {
@@ -271,18 +238,6 @@ int main()
           TM_USART_Puts(USART2, tempInfoStatus);
           sprintf(tempInfoStatus, "Hour: %i:%i:%i\n", sParsedGPSData.sDateTime.hour, sParsedGPSData.sDateTime.min, sParsedGPSData.sDateTime.sec);
           TM_USART_Puts(USART2, tempInfoStatus);
-
-          //nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
-          // Send latitude data received from GPS module
-
-
-
-          // Send speed data received from GPS module
-          //sprintf(tempInfoStatus, "Speed: %f\n", info.speed);
-          //TM_USART_Puts(USART2, tempInfoStatus);
-          // Send direction data received from GPS module
-          //sprintf(tempInfoStatus, "Direction: %f\n", info.direction);
-          //TM_USART_Puts(USART2, tempInfoStatus);
         }
         
         if(0 != GetGGAStatus())
@@ -294,169 +249,10 @@ int main()
           //TM_USART_Puts(USART3, "Hello world\n\r");
         }
       }
-    
-      //  //Unmount drive, don't forget this!
-      //  f_mount(0, "", 1);
-      //}
 
       //TM_USART_Puts(USART2, "Hello world\n\r");
       u8FlagForprocesses &= (uint8_t)(~FLAG_250MS);
     }
-
-    // Update GPR data
-    // Call this as faster as possible
-  /*  result = TM_GPS_Update(&GPS_Data);  */
-    // If we didn't receive any useful data in the start
-  /*
-    if (result == TM_GPS_Result_FirstDataWaiting && TM_DELAY_Time() > 3000) 
-    {
-      // If we didn't receive nothing within 3 seconds 
-      TM_DELAY_SetTime(0);
-      // Display data on USART 
-      TM_USART_Puts(UART4, "\nNothing received after 3 seconds. Is your GPS connected and baudrate set correct?\n");
-      TM_USART_Puts(UART4, "Most GPS receivers has by default 9600 baudrate and 1Hz refresh rate. Check your settings!\n\n");
-    }
-  */
-/*
-    // If we have any unread data
-    if (result == TM_GPS_Result_NewData) 
-    {
-      // We received new packet of useful data from GPS
-      current = TM_GPS_Result_NewData;
-
-      // Is GPS signal valid?
-      if (GPS_Data.Validity) 
-      {
-        // If you want to make a GPS tracker, now is the time to save your data on SD card
-                
-        // We have valid GPS signal
-        TM_USART_Puts(UART4, "New received data have valid GPS signal\r\n");
-        TM_USART_Puts(UART4, "---------------------------------------\r\n");
-#ifndef GPS_DISABLE_GPGGA
-        // GPGGA data
-        TM_USART_Puts(UART4, "GPGGA statement:\r\n");
-
-        // Latitude
-        // Convert float to integer and decimal part, with 6 decimal places
-        TM_GPS_ConvertFloat(GPS_Data.Latitude, &GPS_Float, 6);
-        sprintf(buffer, " - Latitude: %d.%d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-
-        // Longitude
-        // Convert float to integer and decimal part, with 6 decimal places
-        TM_GPS_ConvertFloat(GPS_Data.Longitude, &GPS_Float, 6);
-        sprintf(buffer, " - Longitude: %d.%d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Satellites in use
-        sprintf(buffer, " - Sats in use: %02d\n", GPS_Data.Satellites);
-        TM_USART_Puts(UART4, buffer);    
-        
-        // Current time
-        sprintf(buffer, " - UTC Time: %02d.%02d.%02d:%02d\n", GPS_Data.Time.Hours, GPS_Data.Time.Minutes, GPS_Data.Time.Seconds, GPS_Data.Time.Hundredths);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Fix: 0 = invalid, 1 = GPS, 2 = DGPS
-        sprintf(buffer, " - Fix: %d\n", GPS_Data.Fix);
-        TM_USART_Puts(UART4, buffer);                
-        
-        // Altitude
-        // Convert float to integer and decimal part, with 6 decimal places
-        TM_GPS_ConvertFloat(GPS_Data.Altitude, &GPS_Float, 6);
-        sprintf(buffer, " - Altitude: %3d.%06d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);                
-#endif
-#ifndef GPS_DISABLE_GPRMC
-        // GPRMC data
-        TM_USART_Puts(UART4, "GPRMC statement:\n");
-        
-        // Current date
-        sprintf(buffer, " - Date: %02d.%02d.%04d\n", GPS_Data.Date.Date, GPS_Data.Date.Month, GPS_Data.Date.Year + 2000);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Current speed in knots
-        TM_GPS_ConvertFloat(GPS_Data.Speed, &GPS_Float, 6);
-        sprintf(buffer, " - Speed in knots: %d.%06d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Current speed in km/h
-        temp = TM_GPS_ConvertSpeed(GPS_Data.Speed, TM_GPS_Speed_KilometerPerHour);
-        TM_GPS_ConvertFloat(temp, &GPS_Float, 6);
-        sprintf(buffer, " - Speed in km/h: %d.%06d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-        
-        TM_GPS_ConvertFloat(GPS_Data.Direction, &GPS_Float, 3);
-        sprintf(buffer, " - Direction: %3d.%03d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-#endif
-#ifndef GPS_DISABLE_GPGSA
-        // GPGSA data
-        TM_USART_Puts(UART4, "GPGSA statement:\n");
-        
-        // Horizontal dilution of precision
-        TM_GPS_ConvertFloat(GPS_Data.HDOP, &GPS_Float, 2);
-        sprintf(buffer, " - HDOP: %2d.%02d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Vertical dilution of precision
-        TM_GPS_ConvertFloat(GPS_Data.VDOP, &GPS_Float, 2);
-        sprintf(buffer, " - VDOP: %2d.%02d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Position dilution of precision
-        TM_GPS_ConvertFloat(GPS_Data.PDOP, &GPS_Float, 2);
-        sprintf(buffer, " - PDOP: %2d.%02d\n", GPS_Float.Integer, GPS_Float.Decimal);
-        TM_USART_Puts(UART4, buffer);    
-        
-        // Current fix mode in use
-        sprintf(buffer, " - Fix mode: %d\n", GPS_Data.FixMode);
-        TM_USART_Puts(UART4, buffer);
-        
-        // Display IDs of satellites in use
-        TM_USART_Puts(UART4, "- ID's of used satellites: ");
-        for (i = 0; i < GPS_Data.Satellites; i++)
-        {
-          if (i < (GPS_Data.Satellites - 1)) 
-          {
-            sprintf(buffer, "%d,", GPS_Data.SatelliteIDs[i]);
-          } 
-          else 
-          {
-            sprintf(buffer, "%d\n", GPS_Data.SatelliteIDs[i]);
-          }
-          
-          TM_USART_Puts(UART4, buffer);
-        }
-                
-#endif
-#ifndef GPS_DISABLE_GPGSV
-        // GPGSV data
-        TM_USART_Puts(UART4, "GPGSV statement:\n");
-        
-        // Satellites in view
-        sprintf(buffer, " - Satellites in view: %d\n", GPS_Data.SatellitesInView);
-        TM_USART_Puts(UART4, buffer);    
-#endif
-        TM_USART_Puts(UART4, "---------------------------------------\n");
-          } 
-          else 
-          {
-            // GPS signal is not valid
-            TM_USART_Puts(UART4, "New received data haven't valid GPS signal!\n");
-          }
-        } 
-        else if (result == TM_GPS_Result_FirstDataWaiting && current != TM_GPS_Result_FirstDataWaiting) 
-        {
-          current = TM_GPS_Result_FirstDataWaiting;
-          TM_USART_Puts(UART4, "Waiting first data from GPS!\n");
-        } 
-        else if (result == TM_GPS_Result_OldData && current != TM_GPS_Result_OldData) 
-        {
-          current = TM_GPS_Result_OldData;
-          // We already read data, nothing new was received from GPS
-        }
-    
-    */ 
   }
   
   //nmea_parser_destroy(&parser);

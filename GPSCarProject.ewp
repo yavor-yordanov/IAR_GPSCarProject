@@ -1875,6 +1875,12 @@
     </file>
   </group>
   <group>
+    <name>PWMMotorControl</name>
+    <file>
+      <name>$PROJ_DIR$\PWMMotorControl_Library\pwm_motor_control.c</name>
+    </file>
+  </group>
+  <group>
     <name>Servo</name>
     <file>
       <name>$PROJ_DIR$\stm32f407_ServoLibrary\tm_stm32f4_pwm.c</name>

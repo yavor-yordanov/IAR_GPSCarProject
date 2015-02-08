@@ -98,9 +98,9 @@ int main()
   //TM_SERVO_SetDegrees(&Servo1, 90);
   
   PWM_Motor_Init(&Motor, TIM3, TM_PWM_Channel_2, TM_PWM_PinsPack_1);
-  PWM_Motor_SetDuty(&Motor, 20);
+  PWM_Motor_SetMode(CCW_Dir);
+  PWM_Motor_SetDuty(&Motor, 0);
 
-   
    //nmea_zero_INFO(&info);
    //nmea_parser_init(&parser);
    
@@ -203,7 +203,6 @@ int main()
     // 250ms process
     if(0 != (u8FlagForprocesses & FLAG_250MS))
     {
-      u16Counter = 1;
       //Flashing orange led indicates normal operation of the system
       ToggleOrangeLed();
 
@@ -253,6 +252,140 @@ int main()
       //TM_USART_Puts(USART2, "Hello world\n\r");
       u8FlagForprocesses &= (uint8_t)(~FLAG_250MS);
     }
+    
+    //
+    // 1s process
+    if(0 != (u8FlagForprocesses & FLAG_1000MS))
+    {
+      if(28 >= u16Counter)
+      {
+        switch(u16Counter)
+        {
+        case 1:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 10);
+          break;
+        case 2:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 20);
+          break;
+        case 3:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 30);
+          break;
+        case 4:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 40);
+          break;
+        case 5:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 50);
+          break;
+        case 6:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 60);
+          break;  
+        case 7:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 70);
+          break;
+        case 8:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 60);
+          break;
+        case 9:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 50);
+          break;
+        case 10:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 40);
+          break;
+        case 11:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 30);
+          break;
+        case 12:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 20);
+          break;
+        case 13:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 10);
+          break;
+        case 14:
+          PWM_Motor_SetMode(CCW_Dir);
+          PWM_Motor_SetDuty(&Motor, 0);
+          break;
+        case 15:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 10);
+          break;
+        case 16:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 20);
+          break;
+        case 17:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 30);
+          break;
+        case 18:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 40);
+          break;
+        case 19:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 50);
+          break;
+        case 20:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 60);
+          break;  
+        case 21:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 70);
+          break;
+        case 22:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 60);
+          break;
+        case 23:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 50);
+          break;
+        case 24:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 40);
+          break;
+        case 25:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 30);
+          break;
+        case 26:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 20);
+          break;
+        case 27:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 10);
+          break;
+        case 28:
+          PWM_Motor_SetMode(CW_Dir);
+          PWM_Motor_SetDuty(&Motor, 0);
+          break;
+        default:
+          break;
+        }
+
+        u16Counter++;
+      }
+      else
+      {
+        u16Counter = 0;
+      }
+      
+      u8FlagForprocesses &= (uint8_t)(~FLAG_1000MS);
+    }
   }
   
   //nmea_parser_destroy(&parser);
@@ -261,6 +394,11 @@ int main()
 void SysTick_Handler(void)
 {
   u32SystemTimer++; // increment every milisecond - overflow after ~49 days
+  
+  if(0 == (u32SystemTimer % 1000)) //set bit which indicated elapsed of 1000ms
+  {
+    u8FlagForprocesses |= FLAG_1000MS;
+  }
   
   if(0 == (u32SystemTimer % 250)) //set bit which indicated elapsed of 250ms
   {

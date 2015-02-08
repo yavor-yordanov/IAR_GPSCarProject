@@ -10,7 +10,38 @@
 #ifndef PWM_MOTOR_FREQUENCY
 #define PWM_MOTOR_FREQUENCY 25000
 #endif
-	
+
+#ifndef PIN_IN1
+#define PIN_IN1 GPIO_Pin_7
+#endif
+
+#ifndef PIN_IN2
+#define PIN_IN2 GPIO_Pin_8
+#endif
+
+#ifndef STBY
+#define STBY GPIO_Pin_9
+#endif
+
+//            Input                         Output
+// IN1   IN2       PWM   STBY             OUT1 OUT2          Mode
+//  H     H        H/L    H                 L    L       Short brake
+//  L     H         H     H                 L    H           CCW
+//  L     H         L     H                 L    L       Short brake
+//  H     L         H     H                 H    L           CW
+//  H     L         L     H                 L    L       Short brake
+//  L     L         H     H           OFF (High impedance)   Stop
+// H/L   H/L       H/L    L           OFF (High impedance)  Standby
+
+typedef enum
+{
+  CW_Dir,
+  CCW_Dir,
+  ShortBrake,
+  Stop,
+  Standby
+} MotorMode_t;
+
 /**
  * Motor pwm struct
  *
@@ -71,4 +102,13 @@ Motor_Result_t PWM_Motor_Init(Motor_t* MotorStruct, TIM_TypeDef* TIMx, TM_PWM_Ch
  * 		percentage of the duty cycle between 0 and 100
  */
 Motor_Result_t PWM_Motor_SetDuty(Motor_t* MotorStruct, uint8_t u8Percentage);
+
+/**
+ * Set motoro mode
+ * 
+ * Parameters:
+ *      - MotorMode_t modorMode
+ *
+ */
+void PWM_Motor_SetMode(MotorMode_t modorMode);
 

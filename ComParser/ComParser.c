@@ -38,9 +38,11 @@ static uint8_t u8USART2_BufferIndex = 0;
 static uint8_t u8ReadyFlag = NOT_READY;
 static uint8_t u8GPSReadyFlag = NOT_READY;
 volatile char USART3_DynamicBuffer[MAX_COMMAND_LENGTH];
-volatile char USART2_DynamicBuffer[MAX_NMEA_LENGTH];
 volatile char USART3_Buffer[MAX_COMMAND_LENGTH];
+volatile char USART2_DynamicBuffer[MAX_DYNAMIC_BUFF_SIZE];
 volatile char USART2_Buffer[MAX_NMEA_LENGTH];
+volatile char *pRead = USART2_DynamicBuffer;
+volatile char *pWrite = USART2_DynamicBuffer;
 uint8_t u8RMC_Mess_Ready = 0;
 char RMC_MESSAGE[MAX_NMEA_LENGTH];
 uint8_t u8GGA_Mess_Ready = 0;
@@ -52,6 +54,8 @@ static uint8_t isHex(char cChar);
 static uint8_t HexToDec(char cChar);
 uint8_t  u8CurrentServo1Degrees = 50;
 volatile uint8_t u8Index = 0;
+
+static uint8_t GetCharFromNMEABuffer(char *pChar);
 
 static uint8_t isDigit(char cChar)
 {
@@ -90,8 +94,33 @@ static uint8_t HexToDec(char cChar)
   }
 }
 
+// Connect to GPS receiver
 void USART2_ReceivedChar(char cChar)
-{ 
+{
+  if(pWrite == &USART2_DynamicBuffer[MAX_DYNAMIC_BUFF_SIZE-1])
+  {
+    pWrite = USART2_DynamicBuffer;
+  }
+  else
+  {
+    pWrite++;
+  }
+
+  *pWrite = cChar;
+  
+  if(pRead == pWrite)
+  {
+    if(pRead == &USART2_DynamicBuffer[MAX_DYNAMIC_BUFF_SIZE-1])
+    {
+      pRead = USART2_DynamicBuffer;
+    }
+    else
+    {
+      pRead++;
+    }
+  }
+  
+/*
   if(cChar == '\n')
   {
     u8USART2_BufferIndex = 0;
@@ -104,7 +133,7 @@ void USART2_ReceivedChar(char cChar)
     {
       USART2_DynamicBuffer[u8Index] = 0;
     }
-    */
+    //*
     // ***************************************
     
     u8GPSReadyFlag = READY;
@@ -116,6 +145,7 @@ void USART2_ReceivedChar(char cChar)
       USART2_DynamicBuffer[u8USART2_BufferIndex++] = cChar;
     }
   }
+*/
 }
 
 void USART3_ReceivedChar(char cChar)
@@ -157,8 +187,6 @@ uint8_t GetRMCStatus(void)
 
 void GetRMCMessage(char string[])
 {
-  uint8_t u8Index = 0;
-
   memcpy((void *)string, (void const *)RMC_MESSAGE, MAX_NMEA_LENGTH);
   //memset((void *)RMC_MESSAGE, 0, MAX_NMEA_LENGTH);
 
@@ -172,16 +200,112 @@ uint8_t GetGGAStatus(void)
 
 void GetGGAMessage(char string[])
 {
-  uint8_t u8Index = 0;
-
   memcpy((void *)string, (void const *)GGA_MESSAGE, MAX_NMEA_LENGTH);
-  memset((void *)GGA_MESSAGE, 0, MAX_NMEA_LENGTH);
+  //memset((void *)GGA_MESSAGE, 0, MAX_NMEA_LENGTH);
 
   u8GGA_Mess_Ready = 0;
 }
 
+static uint8_t GetCharFromNMEABuffer(char *pChar)
+{
+  uint8_t u8ReturnValue = 1;
+  
+  if(pRead != pWrite)
+  {
+    *pChar = *pRead;
+
+    if(pRead == &USART2_DynamicBuffer[MAX_DYNAMIC_BUFF_SIZE-1])
+    {
+      pRead = USART2_DynamicBuffer;
+    }
+    else
+    {
+      pRead++;
+    }
+  }
+  else
+  {
+    u8ReturnValue = 0;
+  }
+  
+  return u8ReturnValue;
+}
+
 void ParseGPSData(void)
 {
+  char cChar;
+  uint8_t u8Length = 0;
+  
+  while(0 != GetCharFromNMEABuffer(&cChar))
+  {
+    if(cChar == '\n')
+    {
+      u8USART2_BufferIndex = 0;
+      u8Length = 0;
+      
+      while(('\r' != USART2_Buffer[u8Length]) && ((MAX_NMEA_LENGTH - 1) > u8Length))
+      {
+        u8Length++;
+      }
+      
+      // Replace symbol \r with \n because file system add auto symbol \r
+      USART2_Buffer[u8Length] = '\n';
+    
+      if(0 == memcmp((void const *)USART2_Buffer, RMC_MESSAGE_ID, LENGTH_RMC_ID))
+      {
+        memcpy((void *)RMC_MESSAGE, (void const *)USART2_Buffer, MAX_NMEA_LENGTH);
+        //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+        u8RMC_Mess_Ready = 1;
+      }
+      else
+      if(0 == memcmp((void const *)USART2_Buffer, GGA_MESSAGE_ID, LENGTH_GGA_ID))
+      {
+        memcpy((void *)GGA_MESSAGE, (void const *)USART2_Buffer, MAX_NMEA_LENGTH);
+        //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+        u8GGA_Mess_Ready = 1;
+      }
+      else
+      {
+        //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+      }
+      
+      memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+    }
+    else
+    {
+      if(MAX_NMEA_LENGTH > u8USART2_BufferIndex)
+      {
+        USART2_Buffer[u8USART2_BufferIndex++] = cChar;
+      }
+    }
+  }
+  /*
+  if(cChar == '\n')
+  {
+    u8USART2_BufferIndex = 0;
+    
+    // ***** This block should be atomic *****
+    memcpy((void *)USART2_Buffer, (void const *)USART2_DynamicBuffer, MAX_NMEA_LENGTH);
+    memset((void *)USART2_DynamicBuffer, 0, MAX_NMEA_LENGTH);
+    /*
+    for(u8Index = 0; u8Index < MAX_NMEA_LENGTH; ++u8Index)
+    {
+      USART2_DynamicBuffer[u8Index] = 0;
+    }
+    //*
+    // ***************************************
+    
+    u8GPSReadyFlag = READY;
+  }
+  else
+  {
+    if(MAX_NMEA_LENGTH > u8USART2_BufferIndex)
+    {
+      USART2_DynamicBuffer[u8USART2_BufferIndex++] = cChar;
+    }
+  }
+  
+  /*
   uint8_t u8Length = 0;
   
   if(READY == u8GPSReadyFlag)
@@ -210,6 +334,113 @@ void ParseGPSData(void)
 
     u8GPSReadyFlag = NOT_READY;
   }
+  */
+}
+
+uint8_t ParseGGAMessage(void)
+{
+  uint8_t u8CountComma = 0;
+  uint8_t u8CalcCRCValue;
+  uint8_t u8ChecksumResult = CHECKSUM_OR_VALIDITY_ERR;
+  uint8_t u8ReceivedCRCValue;
+  uint8_t u8HDOPIndex;
+  uint8_t u8HDOPIndexArray;
+  uint8_t u8Index;
+  char    cHDOPArray[MAX_HDOP_PAR_LENGHT];
+
+  u8CalcCRCValue = GGA_MESSAGE[1];
+  for(u8Index = 2; u8Index < MAX_NMEA_LENGTH; u8Index++)
+  {
+    if('*' == GGA_MESSAGE[u8Index])
+    {
+      //Get received checksum
+      if(isHex(GGA_MESSAGE[u8Index+1]) && isHex(GGA_MESSAGE[u8Index+2]))
+      {
+        u8ReceivedCRCValue = HexToDec(GGA_MESSAGE[u8Index+1]) << 4;
+        u8ReceivedCRCValue |= HexToDec(GGA_MESSAGE[u8Index+2]);
+        //Compare calculated and received checksum value
+        if(u8ReceivedCRCValue == u8CalcCRCValue)
+        {
+          u8ChecksumResult = CHECKSUM_OK;
+        }
+      }
+      
+      break;
+    }
+    else
+    {
+      //Calculate checksum
+      u8CalcCRCValue ^= GGA_MESSAGE[u8Index];
+    }
+  }
+  
+  if(CHECKSUM_OK == u8ChecksumResult)
+  {
+    for(u8Index = 0; '*' != GGA_MESSAGE[u8Index]; u8Index++)
+    {
+      if(',' == GGA_MESSAGE[u8Index])
+      {
+        u8CountComma++;
+        
+        //$GPGGA,172607.000,4239.9534,N,02322.3658,E,1,4,2.72,200.1,M,36.7,M,,*55 - with GPS fix
+        //$GPGGA,235950.799,,,,,0,0,,,M,,M,,*47 - without GPS fix
+        switch(u8CountComma)
+        {
+        case GGA_UTC:
+          break;
+        case GGA_LATITUDE:
+          break;
+        case GGA_N_S:
+          break;
+        case GGA_LONGITUDE:
+          break;
+        case GGA_E_W:
+          break;
+        case GGA_FIX_STATUS:
+          break;
+        case GGA_SV_NUM:
+          break;
+        case GGA_HDOP:
+          //example: ....,2.72,.....  ;  ...,,...
+          if(',' != GGA_MESSAGE[u8Index+1])   //next symbol is different from ',' (empty parameter)
+          {
+            u8HDOPIndex = u8Index+1;
+            u8HDOPIndexArray = 0;
+            
+            while((',' != GGA_MESSAGE[u8HDOPIndex]) && (MAX_HDOP_PAR_LENGHT > u8HDOPIndexArray))
+            {
+              cHDOPArray[u8HDOPIndexArray] = GGA_MESSAGE[u8HDOPIndex];
+              u8HDOPIndexArray++;
+              u8HDOPIndex++;
+            }
+            
+            sGPSInfo.fHDOP = atof(cHDOPArray);  //get HDOP in float
+          }
+          else
+          {
+            sGPSInfo.fHDOP = 0;
+          }
+          break;
+        case GGA_ALTITUDE:
+          break;
+        case GGA_FIXED_FIELD:
+          break;
+        case GGA_GEO_ID:
+          break;
+        case GGA_FIXED_FIELD1:
+          break;
+        case GGA_DGPS_AGE:
+          break;
+        case GGA_DGPS_STAT_ID:
+          break;
+        default:
+          break;
+        }
+      }
+    }
+  }
+  
+  return u8ChecksumResult;
 }
 
 uint8_t ParseRMCMessage(void)
@@ -223,6 +454,7 @@ uint8_t ParseRMCMessage(void)
   uint8_t u8ReceivedCRCValue;
   uint8_t u8ChecksumResult = CHECKSUM_OR_VALIDITY_ERR;
   uint8_t u8CountComma = 0;
+  int16_t i16TempCalc = 0;
   char cSpeedArray[MAX_SPEED_PAR_LENGHT];
   char cCOGArray[MAX_COG_PAR_LENGHT];
 
@@ -302,18 +534,30 @@ uint8_t ParseRMCMessage(void)
           //example: ...,4239.9114,N,... ; ...,,,...  ‘ddmm.mmmm’ (degree and minutes)
           if(',' != RMC_MESSAGE[u8Index+1])
           {
-            sGPSInfo.d32Latitude = 60*((10*(RMC_MESSAGE[u8Index+1]-'0')) + (RMC_MESSAGE[u8Index+2]-'0')) + 
-                                      ((10*(RMC_MESSAGE[u8Index+3]-'0')) + (RMC_MESSAGE[u8Index+4]-'0')) +
-                                      (((1000*(RMC_MESSAGE[u8Index+6]-'0')) + (100*(RMC_MESSAGE[u8Index+7]-'0')) +
-                                       (10*(RMC_MESSAGE[u8Index+8]-'0')) + (RMC_MESSAGE[u8Index+9]-'0'))/10000.0);
+            sGPSInfo.i32Latitude = 60*((10*(RMC_MESSAGE[u8Index+1]-'0')) + (RMC_MESSAGE[u8Index+2]-'0')) + 
+                                      ((10*(RMC_MESSAGE[u8Index+3]-'0')) + (RMC_MESSAGE[u8Index+4]-'0'));
+            sGPSInfo.i32Latitude *= 10000;
+            
+            i16TempCalc = (RMC_MESSAGE[u8Index+6]-'0') * 10;
+            i16TempCalc += (RMC_MESSAGE[u8Index+7]-'0');
+            i16TempCalc *= 10;
+            i16TempCalc += (RMC_MESSAGE[u8Index+8]-'0');
+            i16TempCalc *= 10;
+            i16TempCalc += (RMC_MESSAGE[u8Index+9]-'0');
+            
+            //(((1000*(RMC_MESSAGE[u8Index+6]-'0')) + (100*(RMC_MESSAGE[u8Index+7]-'0')) +
+            // (10*(RMC_MESSAGE[u8Index+8]-'0')) + (RMC_MESSAGE[u8Index+9]-'0'))/10000.0);
+            
+            sGPSInfo.i32Latitude += i16TempCalc;
+              
             if('S' == RMC_MESSAGE[u8Index+11])
             {
-              sGPSInfo.d32Latitude *= -1;
+              sGPSInfo.i32Latitude *= -1;
             }
           }
           else
           {
-            sGPSInfo.d32Latitude = 0;
+            sGPSInfo.i32Latitude = 0;
           }
           break;
         case RMC_LONGITUDE:
@@ -321,18 +565,30 @@ uint8_t ParseRMCMessage(void)
           //example: ...,02322.4062,E,... ; ...,,,... ‘dddmm.mmmm’ (degree and minutes)
           if(',' != RMC_MESSAGE[u8Index+1])
           {
-            sGPSInfo.d32Longitude = 60*((100*(RMC_MESSAGE[u8Index+1]-'0')) + (10*(RMC_MESSAGE[u8Index+2]-'0')) + (RMC_MESSAGE[u8Index+3]-'0')) + 
-                                      ((10*(RMC_MESSAGE[u8Index+4]-'0')) + (RMC_MESSAGE[u8Index+5]-'0')) +
-                                      (((1000*(RMC_MESSAGE[u8Index+7]-'0')) + (100*(RMC_MESSAGE[u8Index+8]-'0')) +
-                                       (10*(RMC_MESSAGE[u8Index+9]-'0')) + (RMC_MESSAGE[u8Index+10]-'0'))/10000.0);
+            sGPSInfo.i32Longitude = 60*((100*(RMC_MESSAGE[u8Index+1]-'0')) + (10*(RMC_MESSAGE[u8Index+2]-'0')) + (RMC_MESSAGE[u8Index+3]-'0')) + 
+                                      ((10*(RMC_MESSAGE[u8Index+4]-'0')) + (RMC_MESSAGE[u8Index+5]-'0'));
+            sGPSInfo.i32Longitude *= 10000;
+            
+            i16TempCalc = (RMC_MESSAGE[u8Index+7]-'0') * 10;
+            i16TempCalc += (RMC_MESSAGE[u8Index+8]-'0');
+            i16TempCalc *= 10;
+            i16TempCalc += (RMC_MESSAGE[u8Index+9]-'0');
+            i16TempCalc *= 10;
+            i16TempCalc += (RMC_MESSAGE[u8Index+10]-'0');
+            
+            sGPSInfo.i32Longitude += i16TempCalc;
+            
+            //(((1000*(RMC_MESSAGE[u8Index+7]-'0')) + (100*(RMC_MESSAGE[u8Index+8]-'0')) +
+            // (10*(RMC_MESSAGE[u8Index+9]-'0')) + (RMC_MESSAGE[u8Index+10]-'0'))/10000.0);
+            
             if('W' == RMC_MESSAGE[u8Index+12])
             {
-              sGPSInfo.d32Longitude *= -1;
+              sGPSInfo.i32Longitude *= -1;
             }
           }
           else
           {
-            sGPSInfo.d32Longitude = 0;
+            sGPSInfo.i32Longitude = 0;
           }
           break;
         case RMC_SPEED:

@@ -85,35 +85,15 @@ int main()
   PWM_Motor_Init(&Motor, TIM3, TM_PWM_Channel_2, TM_PWM_PinsPack_1);
   PWM_Motor_SetMode(CCW_Dir);
   PWM_Motor_SetDuty(&Motor, 0);
-   
-  //5 seconds delay before startup of the system
+
   while(u32SystemTimer < 5000)
   {
+    //5 seconds delay before startup of the system
     ;
   }
   
   // Command to GPS receiver to enable only RMC and GGA messages
   TM_USART_Puts(USART2, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
-  
-  
-  /* Version 1.1 added */
-    /* Set two test coordinates */
-  /*
-    GPS_Distance.Latitude1 = 48.300215;
-    GPS_Distance.Longitude1 = -122.285903;
-    GPS_Distance.Latitude2 = 45.907813;
-    GPS_Distance.Longitude2 = 56.659407;
-    
-    / Calculate distance and bearing between 2 pointes /
-    TM_GPS_DistanceBetween(&GPS_Distance);
-    / Convert float number /
-    TM_GPS_ConvertFloat(GPS_Distance.Distance, &GPS_Float, 6);
-    sprintf(buffer, "Distance is: %d.%06d meters\n", GPS_Float.Integer, GPS_Float.Decimal);
-    //TM_USART_Puts(UART4, buffer);
-    TM_GPS_ConvertFloat(GPS_Distance.Bearing, &GPS_Float, 6);
-    sprintf(buffer, "Bearing is: %d.%06d degrees\n\n", GPS_Float.Integer, GPS_Float.Decimal);
-    //TM_USART_Puts(UART4, buffer);
-  */
 
   while(1)
   {
@@ -165,8 +145,8 @@ int main()
       u8FlagForprocesses &= (uint8_t)(~FLAG_10MS);
     }
 
-    // 250ms process
-    if(0 != (u8FlagForprocesses & FLAG_250MS))
+    // 100ms process
+    if(0 != (u8FlagForprocesses & FLAG_100MS))
     {
       //Flashing orange led indicates normal operation of the system
       ToggleOrangeLed();
@@ -180,42 +160,48 @@ int main()
           
           if(CHECKSUM_OK == ParseRMCMessage())
           {
-            
+            GetGPSInfoData(&sParsedGPSData);
+            sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
+            TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Latitude: %i\n", sParsedGPSData.i32Latitude);
+            TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Longitude: %i\n", sParsedGPSData.i32Longitude);
+            TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Speed: %f\n", sParsedGPSData.dSpeed);
+            TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Direction: %f\n", sParsedGPSData.dDirection);
+            TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Date: %i.%i.%i\n", sParsedGPSData.sDateTime.year, sParsedGPSData.sDateTime.mon, sParsedGPSData.sDateTime.day);
+            TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Hour: %i:%i:%i\n", sParsedGPSData.sDateTime.hour, sParsedGPSData.sDateTime.min, sParsedGPSData.sDateTime.sec);
+            TM_USART_Puts(USART2, tempInfoStatus);
           }
           else
           {
-            
+            TM_USART_Puts(USART2, "Error! Checksum check for RMC message failed!\n");
           }
-
-          GetGPSInfoData(&sParsedGPSData);
-          sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          sprintf(tempInfoStatus, "Latitude: %f\n", sParsedGPSData.d32Latitude);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          sprintf(tempInfoStatus, "Longitude: %f\n", sParsedGPSData.d32Longitude);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          sprintf(tempInfoStatus, "Speed: %f\n", sParsedGPSData.dSpeed);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          sprintf(tempInfoStatus, "Direction: %f\n", sParsedGPSData.dDirection);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          sprintf(tempInfoStatus, "Date: %i.%i.%i\n", sParsedGPSData.sDateTime.year, sParsedGPSData.sDateTime.mon, sParsedGPSData.sDateTime.day);
-          TM_USART_Puts(USART2, tempInfoStatus);
-          sprintf(tempInfoStatus, "Hour: %i:%i:%i\n", sParsedGPSData.sDateTime.hour, sParsedGPSData.sDateTime.min, sParsedGPSData.sDateTime.sec);
-          TM_USART_Puts(USART2, tempInfoStatus);
         }
-        
+
         if(0 != GetGGAStatus())
         {
-          //GetGGAMessage(tempString);
-          //f_puts(tempString, &fil);
-          //nmea_parse(&parser, tempString, (int)strlen(tempString), &info);
-          //TODO: Send neccessary information to PC
-          //TM_USART_Puts(USART3, "Hello world\n\r");
+          GetGGAMessage(tempString);
+          f_puts(tempString, &fil);
+
+          if(CHECKSUM_OK == ParseGGAMessage())
+          {
+            GetGPSInfoData(&sParsedGPSData);
+            sprintf(tempInfoStatus, "HDOP: %f\n", sParsedGPSData.fHDOP);
+            TM_USART_Puts(USART2, tempInfoStatus);
+          }
+          else
+          {
+            TM_USART_Puts(USART2, "Error! Checksum check for GGA message failed!\n");
+          }
         }
       }
 
       //TM_USART_Puts(USART2, "Hello world\n\r");
-      u8FlagForprocesses &= (uint8_t)(~FLAG_250MS);
+      u8FlagForprocesses &= (uint8_t)(~FLAG_100MS);
     }
 
     // 1s process
@@ -389,12 +375,17 @@ void SysTick_Handler(void)
   {
     u8FlagForprocesses |= FLAG_1000MS;
   }
-  
+
   if(0 == (u32SystemTimer % 250)) //set bit which indicated elapsed of 250ms
   {
     u8FlagForprocesses |= FLAG_250MS;
   }
-  
+
+  if(0 == (u32SystemTimer % 100)) // set bit which indicated elapsed of 100ms
+  {
+    u8FlagForprocesses |= FLAG_100MS;
+  }
+
   if(0 == (u32SystemTimer % 10)) //set bit which indicated elapsed of 10ms
   {
     u8FlagForprocesses |= FLAG_10MS;

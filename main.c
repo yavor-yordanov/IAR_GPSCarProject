@@ -9,6 +9,7 @@
 #include "nmea.h"
 #include "stm32f407_LedDrv.h"
 #include "ComParser.h"
+#include "navigator.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -50,14 +51,17 @@ int main()
   uint8_t  u8ServoSign = 1;            // 1 - plus, 0 - minus
   uint8_t  u8StateOfSDCard = 0;        // State of SD card 1 - Mount and Open file; 0 - Unmount and close file
   uint32_t u32TempUserButtonValue = 0;
+  uint32_t u32TempTimer = 0;
   pointerSendBuffer = sendBuffer;
   nmeaINFO info;
   nmeaPARSER parser;
   
   //Fatfs object
   FATFS FatFs;
-  //File object
+  //File objects
   FIL fil;
+  FIL fileParsedValues;
+  FIL fileTrajectory;
   //Free and total space
   uint32_t total, free;
   //Servo object
@@ -99,7 +103,7 @@ int main()
   {
     ParseCommand();
     ParseGPSData();
-    
+
     // 10ms process
     if(0 != (u8FlagForprocesses & FLAG_10MS))
     {
@@ -123,6 +127,7 @@ int main()
           if(0 != u8StateOfSDCard)
           {
             f_close(&fil);
+            f_close(&fileParsedValues);
             f_mount(0, "", 1);
             u8StateOfSDCard = 0;
             SetBlueLed(Bit_RESET);
@@ -131,9 +136,15 @@ int main()
           {
             if(f_mount(&FatFs, "", 1) == FR_OK)
             {
-              //Try to open file
-              if(f_open(&fil, "1stfile.txt", FA_OPEN_ALWAYS | FA_READ | FA_WRITE) == FR_OK)
+              //Try to open files
+              if((f_open(&fil, "log_file.txt", FA_OPEN_ALWAYS | FA_READ | FA_WRITE) == FR_OK) && 
+                 (f_open(&fileParsedValues, "par_file.txt", FA_OPEN_ALWAYS | FA_READ | FA_WRITE) == FR_OK) &&
+                 (f_open(&fileTrajectory, "TRJ_FILE.txt", FA_READ) == FR_OK))
               {
+                //Take all the information from file and fills the array data.
+                GetTrajectoryFromSDCard(&fileTrajectory);
+                f_close(&fileTrajectory);
+
                 u8StateOfSDCard = 1;
                 SetBlueLed(Bit_SET);
               }
@@ -145,19 +156,45 @@ int main()
       u8FlagForprocesses &= (uint8_t)(~FLAG_10MS);
     }
 
-    // 100ms process
-    if(0 != (u8FlagForprocesses & FLAG_100MS))
+    // 50ms process
+    if(0 != (u8FlagForprocesses & FLAG_50MS))
     {
       //Flashing orange led indicates normal operation of the system
       ToggleOrangeLed();
 
-      if(1 == u8StateOfSDCard)
+      //TM_USART_Puts(USART2, "BEG\r\n");
+
+      if(1 == u8StateOfSDCard)  // && (0 != GetRMCStatus()) && (0 != GetGGAStatus()))
       {
         if(0 != GetRMCStatus())
         {
           GetRMCMessage(tempString);
           f_puts(tempString, &fil);
-          
+
+          if(CHECKSUM_OK == ParseRMCMessage())
+          {
+            GetGPSInfoData(&sParsedGPSData);
+            sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Latitude: %i\n", sParsedGPSData.i32Latitude);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Longitude: %i\n", sParsedGPSData.i32Longitude);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Speed: %f\n", sParsedGPSData.dSpeed);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Direction: %f\n", sParsedGPSData.dDirection);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Date: %i.%i.%i\n", sParsedGPSData.sDateTime.year, sParsedGPSData.sDateTime.mon, sParsedGPSData.sDateTime.day);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+            sprintf(tempInfoStatus, "Hour: %i:%i:%i\n", sParsedGPSData.sDateTime.hour, sParsedGPSData.sDateTime.min, sParsedGPSData.sDateTime.sec);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+          }
+          else
+          {
+            TM_USART_Puts(USART2, "Error! Checksum check for RMC message failed!\n");
+          }
+
+          /*
           if(CHECKSUM_OK == ParseRMCMessage())
           {
             GetGPSInfoData(&sParsedGPSData);
@@ -180,13 +217,34 @@ int main()
           {
             TM_USART_Puts(USART2, "Error! Checksum check for RMC message failed!\n");
           }
+          */
         }
 
         if(0 != GetGGAStatus())
         {
           GetGGAMessage(tempString);
           f_puts(tempString, &fil);
+          
+          //u32TempTimer = u32SystemTimer;
+          //TM_USART_Puts(USART2, "1234567890123456789012345678\r\n");          
+          //if(0 < (u32SystemTimer - u32TempTimer))
+          //{
+          //  sprintf(tempInfoStatus, "%i\r\n", (u32SystemTimer-u32TempTimer));
+          //  TM_USART_Puts(USART2, tempInfoStatus);
+          //}
 
+          if(CHECKSUM_OK == ParseGGAMessage())
+          {
+            GetGPSInfoData(&sParsedGPSData);
+            sprintf(tempInfoStatus, "HDOP: %f\n", sParsedGPSData.fHDOP);
+            f_puts(tempInfoStatus, &fileParsedValues);  //TM_USART_Puts(USART2, tempInfoStatus);
+          }
+          else
+          {
+            TM_USART_Puts(USART2, "Error! Checksum check for GGA message failed!\n");
+          }
+
+/*
           if(CHECKSUM_OK == ParseGGAMessage())
           {
             GetGPSInfoData(&sParsedGPSData);
@@ -197,16 +255,44 @@ int main()
           {
             TM_USART_Puts(USART2, "Error! Checksum check for GGA message failed!\n");
           }
+*/
         }
       }
 
+      //TM_USART_Puts(USART2, "END\r\n");
       //TM_USART_Puts(USART2, "Hello world\n\r");
-      u8FlagForprocesses &= (uint8_t)(~FLAG_100MS);
+      u8FlagForprocesses &= (uint8_t)(~FLAG_50MS);
+    }
+    
+    // 100ms process
+    if(0 != (u8FlagForprocesses & FLAG_100MS))
+    {
+      
     }
 
     // 1s process
     if(0 != (u8FlagForprocesses & FLAG_1000MS))
     {
+      GetGPSInfoData(&sParsedGPSData);
+      sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
+      /*
+      TM_USART_Puts(USART2, tempInfoStatus);
+      sprintf(tempInfoStatus, "Latitude: %i\n", sParsedGPSData.i32Latitude);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      sprintf(tempInfoStatus, "Longitude: %i\n", sParsedGPSData.i32Longitude);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      sprintf(tempInfoStatus, "Speed: %f\n", sParsedGPSData.dSpeed);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      sprintf(tempInfoStatus, "Direction: %f\n", sParsedGPSData.dDirection);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      sprintf(tempInfoStatus, "Date: %i.%i.%i\n", sParsedGPSData.sDateTime.year, sParsedGPSData.sDateTime.mon, sParsedGPSData.sDateTime.day);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      sprintf(tempInfoStatus, "Hour: %i:%i:%i\n", sParsedGPSData.sDateTime.hour, sParsedGPSData.sDateTime.min, sParsedGPSData.sDateTime.sec);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      GetGPSInfoData(&sParsedGPSData);
+      sprintf(tempInfoStatus, "HDOP: %f\n", sParsedGPSData.fHDOP);
+      TM_USART_Puts(USART2, tempInfoStatus);
+      */
       if(28 >= u16Counter)
       {
         switch(u16Counter)
@@ -384,6 +470,11 @@ void SysTick_Handler(void)
   if(0 == (u32SystemTimer % 100)) // set bit which indicated elapsed of 100ms
   {
     u8FlagForprocesses |= FLAG_100MS;
+  }
+  
+  if(0 == (u32SystemTimer % 50))
+  {
+    u8FlagForprocesses |= FLAG_50MS;
   }
 
   if(0 == (u32SystemTimer % 10)) //set bit which indicated elapsed of 10ms

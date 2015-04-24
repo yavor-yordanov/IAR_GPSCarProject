@@ -1875,6 +1875,12 @@
     </file>
   </group>
   <group>
+    <name>Navigator</name>
+    <file>
+      <name>$PROJ_DIR$\Navigator\navigator.c</name>
+    </file>
+  </group>
+  <group>
     <name>PWMMotorControl</name>
     <file>
       <name>$PROJ_DIR$\PWMMotorControl_Library\pwm_motor_control.c</name>

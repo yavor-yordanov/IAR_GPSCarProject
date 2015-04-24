@@ -1,4 +1,5 @@
 #include "ComParser.h"
+#include "tm_stm32f4_usart.h"
 
 // Led commands
 const char G_LED_ON[LENGTH_COMMAND_9] = "#G_LED ON";
@@ -210,6 +211,9 @@ static uint8_t GetCharFromNMEABuffer(char *pChar)
 {
   uint8_t u8ReturnValue = 1;
   
+  //Disable RX interrupt of USART2
+  USART_ITConfig(USART2, USART_IT_RXNE, DISABLE);
+  
   if(pRead != pWrite)
   {
     *pChar = *pRead;
@@ -227,6 +231,9 @@ static uint8_t GetCharFromNMEABuffer(char *pChar)
   {
     u8ReturnValue = 0;
   }
+
+  //Enable RX interrupt of USART2  
+  USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
   
   return u8ReturnValue;
 }
@@ -250,23 +257,31 @@ void ParseGPSData(void)
       
       // Replace symbol \r with \n because file system add auto symbol \r
       USART2_Buffer[u8Length] = '\n';
+      
+      //USART2_Buffer[--u8USART2_BufferIndex] = '\n';
+      //u8USART2_BufferIndex = 0;
     
       if(0 == memcmp((void const *)USART2_Buffer, RMC_MESSAGE_ID, LENGTH_RMC_ID))
-      {
+      { 
         memcpy((void *)RMC_MESSAGE, (void const *)USART2_Buffer, MAX_NMEA_LENGTH);
         //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+        if(1 == u8RMC_Mess_Ready)
+        {
+          TM_USART_Puts(USART2, "Error in flag u8RMC_Mess_Ready");
+        }  
+        
         u8RMC_Mess_Ready = 1;
       }
-      else
+
       if(0 == memcmp((void const *)USART2_Buffer, GGA_MESSAGE_ID, LENGTH_GGA_ID))
-      {
+      { 
         memcpy((void *)GGA_MESSAGE, (void const *)USART2_Buffer, MAX_NMEA_LENGTH);
         //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
+        if(1 == u8GGA_Mess_Ready)
+        {
+          TM_USART_Puts(USART2, "Error in flag u8GGA_Mess_Ready");
+        }
         u8GGA_Mess_Ready = 1;
-      }
-      else
-      {
-        //memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);
       }
       
       memset((void *)USART2_Buffer, 0, MAX_NMEA_LENGTH);

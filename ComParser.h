@@ -118,8 +118,8 @@ typedef struct GPSDateTime
 typedef struct GPSInfo
 {
     uint8_t u8ValidityFlag; // 0 = V -invalid data; 1 = A - valid data
-    int32_t i32Latitude;    // Latitude
-    int32_t i32Longitude;   // Longitude
+    int32_t i32Latitude;    // Latitude  - resolution 1/10 000 minute 
+    int32_t i32Longitude;   // Longitude - same as latitude
     double  dSpeed;         // Speed
     double  dDirection;     // Direction depending North in degrees
     tGPSDateTime sDateTime; // Date and time information

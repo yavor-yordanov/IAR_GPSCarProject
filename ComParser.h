@@ -18,6 +18,14 @@
 #define NOT_READY 0
 #endif
 
+#ifndef VALID_GPS_DATA
+#define VALID_GPS_DATA 1
+#endif
+
+#ifndef NO_VALID_GPS_DATA
+#define NO_VALID_GPS_DATA 1
+#endif
+
 #ifndef LENGTH_RMC_ID
 #define LENGTH_RMC_ID 6
 #endif

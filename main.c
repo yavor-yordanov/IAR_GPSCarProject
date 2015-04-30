@@ -12,7 +12,7 @@
 #include "navigator.h"
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <stdlib.h> 
 
 #define  MAX_STRLEN ((uint8_t) 12) // this is the maximum string length of our string in characters
 #define   FLAG_10MS ((uint8_t)  1)
@@ -68,6 +68,8 @@ int main()
   TM_SERVO_t Servo;
   // Motor object
   Motor_t Motor;
+  //Navi information
+  tNaviInfo naviInfo;
 
   //Initialize system
   SystemInit();
@@ -293,6 +295,10 @@ int main()
       sprintf(tempInfoStatus, "HDOP: %f\n", sParsedGPSData.fHDOP);
       TM_USART_Puts(USART2, tempInfoStatus);
       */
+
+      NaviProcess(&naviInfo);
+
+      /*
       if(28 >= u16Counter)
       {
         switch(u16Counter)
@@ -447,6 +453,7 @@ int main()
       {
         u16Counter = 0;
       }
+      */
       
       u8FlagForprocesses &= (uint8_t)(~FLAG_1000MS);
     }

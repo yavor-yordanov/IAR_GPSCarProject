@@ -1,10 +1,90 @@
 
 #include "navigator.h"
-
-
+#include "ComParser.h"
+#include "math.h"
 
 tTrajectoryInfo asTrajectoryPoints[MAX_PARSED_TRAJ_POINT];
-uint8_t u8NumTrajectoryPoints = 0;
+static uint8_t u8NumTrajectoryPoints = 0;      //Total points from trajectory
+static uint8_t u8TargetPoint = 0;              //Current target point
+static uint8_t u8MotorSpeedOld = 0;
+static uint8_t u8WheelDegreesOld = MID_WHEEL_DEGREES;
+static uint8_t u8WheelDirectionOld = CCW_Dir;
+
+//Definition of static functions
+static uint16_t CalculateDistance(int32_t i32CurrLatitude, int32_t i32CurrLongitude, 
+                                  int32_t i32TargLatitude, int32_t i32TargLongitude);
+static double CalculateBearing(int32_t i32CurrLatitude, int32_t i32CurrLongitude, 
+                               int32_t i32TargLatitude, int32_t i32TargLongitude);
+
+void NaviProcess(tNaviInfo * pNaviInfo)
+{
+  tGPSInfo CurrentGPSInfo;
+  uint16_t u16Distance = 0;
+  double   dDirCurrentTarget = 0;
+  double   dDiffBearing = 0;
+  //uint8_t  u8MotorSpeed = 0;
+  uint8_t  u8WheelDegrees = MID_WHEEL_DEGREES;
+  //uint8_t  u8WheelDirection = CCW_Dir;
+
+  GetGPSInfoData(&CurrentGPSInfo);
+
+  if((u8TargetPoint <= u8NumTrajectoryPoints) && (VALID_GPS_DATA == CurrentGPSInfo.u8ValidityFlag))
+  {
+    u16Distance = CalculateDistance(CurrentGPSInfo.i32Latitude, CurrentGPSInfo.i32Longitude, 
+                                    asTrajectoryPoints[u8TargetPoint].i32Latitude, asTrajectoryPoints[u8TargetPoint].i32Longitude);
+    dDirCurrentTarget = CalculateBearing(CurrentGPSInfo.i32Latitude, CurrentGPSInfo.i32Longitude, 
+                                    asTrajector;yPoints[u8TargetPoint].i32Latitude, asTrajectoryPoints[u8TargetPoint].i32Longitude);
+    
+    //TODO: Calculation of u8WheelDegrees
+    if(u16Distance > 5)
+    {
+      // If distance to target point is bigger than 5 x 18.5 = 92.5 cm then 
+      // we should to continue with calculation of navigation
+
+      dDiffBearing = dDirCurrentTarget - CurrentGPSInfo.dDirection;
+      
+      if()
+      {
+        
+      }
+      
+      PWM_Motor_SetMode(CCW_Dir);
+      PWM_Motor_SetDuty(&Motor, 50);
+      TM_SERVO_SetDegrees(&Servo, u8WheelDegrees);
+    }
+    else
+    {
+      // If distance to target point is less than 5 x 18.5 = 92.5 cm then 
+      // we should to continue with navigation to the next target point from trajectory
+      u8TargetPoint++;
+    }
+  }
+  else
+  {
+    PWM_Motor_SetDuty(&Motor, 0);
+    TM_SERVO_SetDegrees(&Servo, MID_WHEEL_DEGREES);
+    //Car has passed through all setpoints
+  }
+
+  /*
+  PWM_Motor_SetMode(CCW_Dir);
+  PWM_Motor_SetDuty(&Motor, 10);
+  TM_SERVO_SetDegrees(&Servo, 50);
+  */
+}
+
+static uint16_t CalculateDistance(int32_t i32CurrLatitude, int32_t i32CurrLongitude, 
+                                  int32_t i32TargLatitude, int32_t i32TargLongitude)
+{
+  return (uint16_t) sqrt(((i32CurrLatitude - i32TargLatitude)*(i32CurrLatitude - i32TargLatitude)) +
+                         ((i32CurrLongitude - i32TargLongitude)*(i32CurrLongitude - i32TargLongitude)));
+}
+
+static double CalculateBearing(int32_t i32CurrLatitude, int32_t i32CurrLongitude, 
+                               int32_t i32TargLatitude, int32_t i32TargLongitude)
+{
+  
+}
 
 void GetTrajectoryFromSDCard(FIL * fileTrajectory)
 {

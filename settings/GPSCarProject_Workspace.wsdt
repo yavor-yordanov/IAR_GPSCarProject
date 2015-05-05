@@ -12,7 +12,7 @@
           
           
           
-        <Column0>257</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
+        <Column0>240</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
       </Workspace>
       <Build>
         
@@ -37,7 +37,7 @@
             <Factory>Workspace</Factory>
             <Session>
               
-            <NodeDict><ExpandedNode>GPSCarProject</ExpandedNode><ExpandedNode>GPSCarProject/Com_Parser</ExpandedNode><ExpandedNode>GPSCarProject/EWARM</ExpandedNode><ExpandedNode>GPSCarProject/Navigator</ExpandedNode><ExpandedNode>GPSCarProject/Output</ExpandedNode><ExpandedNode>GPSCarProject/STM32F4-Discovery</ExpandedNode><ExpandedNode>GPSCarProject/STM32Fxx_StdPeriphDriver</ExpandedNode><ExpandedNode>GPSCarProject/USART</ExpandedNode><ExpandedNode>GPSCarProject/User</ExpandedNode></NodeDict></Session>
+            <NodeDict><ExpandedNode>GPSCarProject</ExpandedNode><ExpandedNode>GPSCarProject/Com_Parser</ExpandedNode><ExpandedNode>GPSCarProject/EWARM</ExpandedNode><ExpandedNode>GPSCarProject/Navigator</ExpandedNode><ExpandedNode>GPSCarProject/Output</ExpandedNode><ExpandedNode>GPSCarProject/PWMMotorControl</ExpandedNode><ExpandedNode>GPSCarProject/STM32F4-Discovery</ExpandedNode><ExpandedNode>GPSCarProject/STM32Fxx_StdPeriphDriver</ExpandedNode><ExpandedNode>GPSCarProject/USART</ExpandedNode><ExpandedNode>GPSCarProject/User</ExpandedNode></NodeDict></Session>
           </Tab>
         <Tab><Identity>TabID-10227-2335</Identity><TabName>Source Browser</TabName><Factory>SourceBrowser</Factory><Session><TypeFilter>2147483647</TypeFilter><FileFilter>1</FileFilter></Session></Tab></Tabs>
         
@@ -63,14 +63,14 @@
       
       
       
-    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\PWMMotorControl_Library\pwm_motor_control.c</Filename><XPos>0</XPos><YPos>42</YPos><SelStart>1614</SelStart><SelEnd>1614</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\pwm_motor_control.h</Filename><XPos>0</XPos><YPos>48</YPos><SelStart>398</SelStart><SelEnd>398</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\main.c</Filename><XPos>0</XPos><YPos>24</YPos><SelStart>1894</SelStart><SelEnd>1894</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\Navigator\navigator.c</Filename><XPos>0</XPos><YPos>18</YPos><SelStart>2045</SelStart><SelEnd>2045</SelEnd></Tab><ActiveTab>3</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\navigator.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>175</SelStart><SelEnd>175</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\ComParser.h</Filename><XPos>0</XPos><YPos>100</YPos><SelStart>3198</SelStart><SelEnd>3198</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\ComParser\ComParser.c</Filename><XPos>0</XPos><YPos>27</YPos><SelStart>2057</SelStart><SelEnd>2065</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>D:\Programs\EWARM-630.4\EWARM\arm\inc\c\math.h</Filename><XPos>0</XPos><YPos>642</YPos><SelStart>27612</SelStart><SelEnd>27612</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\PWMMotorControl_Library\pwm_motor_control.c</Filename><XPos>0</XPos><YPos>40</YPos><SelStart>2139</SelStart><SelEnd>2139</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\pwm_motor_control.h</Filename><XPos>0</XPos><YPos>48</YPos><SelStart>398</SelStart><SelEnd>398</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\main.c</Filename><XPos>0</XPos><YPos>56</YPos><SelStart>9022</SelStart><SelEnd>9022</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\Navigator\navigator.c</Filename><XPos>0</XPos><YPos>75</YPos><SelStart>3101</SelStart><SelEnd>3101</SelEnd></Tab><ActiveTab>3</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\navigator.h</Filename><XPos>0</XPos><YPos>8</YPos><SelStart>698</SelStart><SelEnd>698</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\ComParser.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>315</SelStart><SelEnd>315</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\ComParser\ComParser.c</Filename><XPos>0</XPos><YPos>27</YPos><SelStart>2057</SelStart><SelEnd>2065</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>D:\Programs\EWARM-630.4\EWARM\arm\inc\c\math.h</Filename><XPos>0</XPos><YPos>487</YPos><SelStart>23729</SelStart><SelEnd>23729</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
     <Positions>
       
       
       
       
       
-    <Top><Row0><Sizes><Toolbar-01c61c88><key>iaridepm.enu1</key></Toolbar-01c61c88></Sizes></Row0></Top><Left><Row0><Sizes><Wnd2><Rect><Top>-2</Top><Left>-2</Left><Bottom>715</Bottom><Right>331</Right><x>-2</x><y>-2</y><xscreen>199</xscreen><yscreen>188</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>186508</sizeHorzCY><sizeVertCX>173438</sizeVertCX><sizeVertCY>711310</sizeVertCY></Rect></Wnd2></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd3><Rect><Top>-2</Top><Left>-2</Left><Bottom>248</Bottom><Right>1922</Right><x>-2</x><y>-2</y><xscreen>1924</xscreen><yscreen>250</yscreen><sizeHorzCX>1002083</sizeHorzCX><sizeHorzCY>248016</sizeHorzCY><sizeVertCX>103646</sizeVertCX><sizeVertCY>186508</sizeVertCY></Rect></Wnd3></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
+    <Top><Row0><Sizes><Toolbar-01c61c88><key>iaridepm.enu1</key></Toolbar-01c61c88></Sizes></Row0></Top><Left><Row0><Sizes><Wnd2><Rect><Top>-2</Top><Left>-2</Left><Bottom>621</Bottom><Right>331</Right><x>-2</x><y>-2</y><xscreen>199</xscreen><yscreen>188</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>186508</sizeHorzCY><sizeVertCX>173438</sizeVertCX><sizeVertCY>618056</sizeVertCY></Rect></Wnd2></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd3><Rect><Top>-2</Top><Left>-2</Left><Bottom>342</Bottom><Right>1922</Right><x>-2</x><y>-2</y><xscreen>1924</xscreen><yscreen>344</yscreen><sizeHorzCX>1002083</sizeHorzCX><sizeHorzCY>341270</sizeHorzCY><sizeVertCX>103646</sizeVertCX><sizeVertCY>186508</sizeVertCY></Rect></Wnd3></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
   </Desktop>
 </Workspace>
 

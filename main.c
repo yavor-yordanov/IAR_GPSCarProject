@@ -64,10 +64,6 @@ int main()
   FIL fileTrajectory;
   //Free and total space
   uint32_t total, free;
-  //Servo object
-  TM_SERVO_t Servo;
-  // Motor object
-  Motor_t Motor;
   //Navi information
   tNaviInfo naviInfo;
 
@@ -83,14 +79,7 @@ int main()
   TM_USART_Puts(USART3, "Hello world\n\r");
 
   //disk_initialize(0);
-  /* Initialize pwn servo, TIM2, Channel 3, Pinspack 2 = PB10 */
-  TM_SERVO_Init(&Servo, TIM2, TM_PWM_Channel_3, TM_PWM_PinsPack_2);
-  TM_SERVO_SetDegrees(&Servo, 90);
-  
-  /* Initialize pwm motor, TIM3, Channel 2, Pinspack 1 = PA7 */
-  PWM_Motor_Init(&Motor, TIM3, TM_PWM_Channel_2, TM_PWM_PinsPack_1);
-  PWM_Motor_SetMode(CCW_Dir);
-  PWM_Motor_SetDuty(&Motor, 0);
+  NaviInit();
 
   while(u32SystemTimer < 5000)
   {
@@ -116,7 +105,7 @@ int main()
         u8OldServoDegrees = u8DegreesTempValue;
         if((50 <= u8OldServoDegrees) && (140 >= u8OldServoDegrees))
         {
-          TM_SERVO_SetDegrees(&Servo, u8OldServoDegrees);
+          //TM_SERVO_SetDegrees(&Servo, u8OldServoDegrees);
         }
       }
       
@@ -276,8 +265,8 @@ int main()
     if(0 != (u8FlagForprocesses & FLAG_1000MS))
     {
       GetGPSInfoData(&sParsedGPSData);
-      sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
       /*
+      sprintf(tempInfoStatus, "Validity: %i\n", sParsedGPSData.u8ValidityFlag);
       TM_USART_Puts(USART2, tempInfoStatus);
       sprintf(tempInfoStatus, "Latitude: %i\n", sParsedGPSData.i32Latitude);
       TM_USART_Puts(USART2, tempInfoStatus);

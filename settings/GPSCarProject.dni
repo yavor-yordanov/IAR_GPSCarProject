@@ -41,7 +41,7 @@ ITMportsTermIO=0
 ITMportsLogFile=0
 ITMlogFile=$PROJ_DIR$\ITM.log
 [DebugChecksum]
-Checksum=1694561376
+Checksum=1836492372
 [CallStack]
 ShowArgs=0
 [Disassembly]

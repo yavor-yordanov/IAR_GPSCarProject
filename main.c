@@ -10,9 +10,10 @@
 #include "stm32f407_LedDrv.h"
 #include "ComParser.h"
 #include "navigator.h"
+#include "Compass.h"
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 
 #define  MAX_STRLEN ((uint8_t) 12) // this is the maximum string length of our string in characters
 #define   FLAG_10MS ((uint8_t)  1)
@@ -55,6 +56,7 @@ int main()
   pointerSendBuffer = sendBuffer;
   nmeaINFO info;
   nmeaPARSER parser;
+
   
   //Fatfs object
   FATFS FatFs;
@@ -77,6 +79,9 @@ int main()
   TM_USART_Init(USART3, TM_USART_PinsPack_3, 9600);
   //Put string to terminal
   TM_USART_Puts(USART3, "Hello world\n\r");
+
+  //Init e-compass from IMU module
+  CompassInit();
 
   //disk_initialize(0);
   NaviInit();
@@ -286,6 +291,7 @@ int main()
       */
 
       NaviProcess(&naviInfo);
+      CompassProcess();
 
       /*
       if(28 >= u16Counter)
